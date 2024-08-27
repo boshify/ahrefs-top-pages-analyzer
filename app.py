@@ -28,15 +28,12 @@ if uploaded_file is not None:
         df = df.resample('W-Mon', on=date_col).sum().reset_index().sort_values(by=date_col)
     elif date_frame == 'monthly':
         df = df.resample('M', on=date_col).sum().reset_index().sort_values(by=date_col)
-    # No need to resample for daily since the input data is already daily
     
-    # Allow user to select the moving average window size
-    max_window_size = len(df)
-    window_size = st.slider(f"Select Moving Average Window ({date_frame})", min_value=1, max_value=max_window_size, value=3, step=1)
+    # Handling potential division by zero or other anomalies
+    df[page_col] = pd.to_numeric(df[page_col], errors='coerce').replace(0, np.nan)
+    df[traffic_col] = pd.to_numeric(df[traffic_col], errors='coerce').replace(0, np.nan)
     
-    df[page_col] = pd.to_numeric(df[page_col], errors='coerce')
-    df[traffic_col] = pd.to_numeric(df[traffic_col], errors='coerce')
-    
+    # Calculate growth rates
     df['Page Growth Rate'] = df[page_col].pct_change() * 100
     df['Traffic Change Rate'] = df[traffic_col].pct_change() * 100
 
@@ -67,6 +64,10 @@ if uploaded_file is not None:
         rapid_growth_traffic_change = df_ma[rapid_growth_mask][f"Traffic Change {window_size}MA"].mean()
 
         return correlation_ma, stable_growth_traffic_change, rapid_growth_traffic_change
+
+    # Allow user to select the moving average window size
+    max_window_size = len(df)
+    window_size = st.slider(f"Select Moving Average Window ({date_frame})", min_value=1, max_value=max_window_size, value=3, step=1)
 
     correlation, stable_growth_traffic, rapid_growth_traffic = analyze_growth(df.copy(), window_size)
     
