@@ -13,12 +13,23 @@ if uploaded_file is not None:
     st.write(df.head())
 
     # Allow user to select columns
+    date_col = st.selectbox("Select the column for 'Date':", df.columns)
     page_col = st.selectbox("Select the column for 'Pages':", df.columns)
     traffic_col = st.selectbox("Select the column for 'Traffic':", df.columns)
+    
+    # Convert date column to datetime
+    df[date_col] = pd.to_datetime(df[date_col])
     
     # Allow user to select the date frame
     date_frame = st.selectbox("Select Date Frame:", ['daily', 'weekly', 'monthly'])
 
+    # Aggregate data based on the selected date frame
+    if date_frame == 'weekly':
+        df = df.resample('W-Mon', on=date_col).sum().reset_index().sort_values(by=date_col)
+    elif date_frame == 'monthly':
+        df = df.resample('M', on=date_col).sum().reset_index().sort_values(by=date_col)
+    # No need to resample for daily since the input data is already daily
+    
     # Allow user to select the moving average window size
     max_window_size = len(df)
     window_size = st.slider(f"Select Moving Average Window ({date_frame})", min_value=1, max_value=max_window_size, value=3, step=1)
@@ -30,7 +41,7 @@ if uploaded_file is not None:
     df['Traffic Change Rate'] = df[traffic_col].pct_change() * 100
 
     st.write("Calculated Growth Rates:")
-    st.write(df[['Week', 'Page Growth Rate', 'Traffic Change Rate']].dropna().head())
+    st.write(df[[date_col, 'Page Growth Rate', 'Traffic Change Rate']].dropna().head())
 
     st.header("Analysis")
     
