@@ -38,16 +38,22 @@ if uploaded_file is not None:
     # Normalize the growth rate by the total number of pages
     df['Normalized Page Growth Rate'] = df['Page Growth Rate'] / np.log1p(df[page_col])
 
+    # Allow user to set a decay factor
+    decay_factor = st.slider("Select Decay Factor", min_value=0.0, max_value=1.0, value=0.1, step=0.01)
+
+    # Apply the decay factor to the traffic change rate
+    df['Adjusted Traffic Change Rate'] = df['Traffic Change Rate'] * (1 - decay_factor * np.log1p(df[page_col]))
+
     st.write("Calculated Growth Rates:")
-    st.write(df[[date_col, 'Page Growth Rate', 'Normalized Page Growth Rate', 'Traffic Change Rate']].dropna().head())
+    st.write(df[[date_col, 'Page Growth Rate', 'Normalized Page Growth Rate', 'Adjusted Traffic Change Rate']].dropna().head())
 
     # Allow user to select the lag period
-    lag_period = st.slider("Select Lag Period (in periods)", min_value=0, max_value=31, value=0, step=1)
+    lag_period = st.slider("Select Lag Period (in periods)", min_value=0, max_value=12, value=0, step=1)
 
     if lag_period > 0:
-        df['Lagged Traffic Change Rate'] = df['Traffic Change Rate'].shift(lag_period)
+        df['Lagged Adjusted Traffic Change Rate'] = df['Adjusted Traffic Change Rate'].shift(lag_period)
     else:
-        df['Lagged Traffic Change Rate'] = df['Traffic Change Rate']
+        df['Lagged Adjusted Traffic Change Rate'] = df['Adjusted Traffic Change Rate']
 
     st.header("Analysis")
     
@@ -57,14 +63,14 @@ if uploaded_file is not None:
             return None, None, None, None, None
 
         df[f"Normalized Page Growth {window_size}MA"] = df['Normalized Page Growth Rate'].rolling(window=window_size).mean()
-        df[f"Lagged Traffic Change {window_size}MA"] = df['Lagged Traffic Change Rate'].rolling(window=window_size).mean()
-        df_ma = df.dropna(subset=[f"Normalized Page Growth {window_size}MA", f"Lagged Traffic Change {window_size}MA"])
+        df[f"Lagged Adjusted Traffic Change {window_size}MA"] = df['Lagged Adjusted Traffic Change Rate'].rolling(window=window_size).mean()
+        df_ma = df.dropna(subset=[f"Normalized Page Growth {window_size}MA", f"Lagged Adjusted Traffic Change {window_size}MA"])
 
         if df_ma.empty:
             st.warning("Insufficient data after applying the moving average. Please try a shorter window size or adjust your data.")
             return None, None, None, None, None
 
-        correlation_ma = df_ma[[f"Normalized Page Growth {window_size}MA", f"Lagged Traffic Change {window_size}MA"]].corr().iloc[0, 1]
+        correlation_ma = df_ma[[f"Normalized Page Growth {window_size}MA", f"Lagged Adjusted Traffic Change {window_size}MA"]].corr().iloc[0, 1]
         
         # Dynamically calculate stable and rapid growth thresholds
         stable_min = df_ma[f"Normalized Page Growth {window_size}MA"].quantile(0.25)
@@ -75,9 +81,9 @@ if uploaded_file is not None:
         stable_growth_mask = (df_ma[f"Normalized Page Growth {window_size}MA"] >= stable_min) & (df_ma[f"Normalized Page Growth {window_size}MA"] <= stable_max)
         rapid_growth_mask = df_ma[f"Normalized Page Growth {window_size}MA"] > rapid_growth_threshold
 
-        stable_growth_traffic_change = df_ma[stable_growth_mask][f"Lagged Traffic Change {window_size}MA"].mean()
-        rapid_growth_traffic_change = df_ma[rapid_growth_mask][f"Lagged Traffic Change {window_size}MA"].mean()
-        rapid_growth_traffic_std = df_ma[rapid_growth_mask][f"Lagged Traffic Change {window_size}MA"].std()
+        stable_growth_traffic_change = df_ma[stable_growth_mask][f"Lagged Adjusted Traffic Change {window_size}MA"].mean()
+        rapid_growth_traffic_change = df_ma[rapid_growth_mask][f"Lagged Adjusted Traffic Change {window_size}MA"].mean()
+        rapid_growth_traffic_std = df_ma[rapid_growth_mask][f"Lagged Adjusted Traffic Change {window_size}MA"].std()
 
         return correlation_ma, stable_growth_traffic_change, rapid_growth_traffic_change, rapid_growth_traffic_std, df_ma, stable_min, stable_max, rapid_growth_threshold
 
@@ -93,13 +99,13 @@ if uploaded_file is not None:
 
         st.write("### Insights")
         if stable_growth_traffic is not None:
-            st.write(f"**Stable Growth (between {stable_min:.2f}% and {stable_max:.2f}%)**: During periods where normalized page growth remains within this stable range, the average lagged traffic change rate is {stable_growth_traffic:.2f}%. This suggests that the twiddler algorithm rewards stable page growth, resulting in consistent increases in traffic after a lag of {lag_period} periods.")
+            st.write(f"**Stable Growth (between {stable_min:.2f}% and {stable_max:.2f}%)**: During periods where normalized page growth remains within this stable range, the average lagged and adjusted traffic change rate is {stable_growth_traffic:.2f}%. This suggests that the twiddler algorithm rewards stable page growth, resulting in consistent increases in traffic after a lag of {lag_period} periods.")
 
         if rapid_growth_traffic is not None and not np.isnan(rapid_growth_traffic):
-            st.write(f"**Rapid Growth (above {rapid_growth_threshold:.2f}%)**: When normalized page growth exceeds this threshold, the average lagged traffic change rate is {rapid_growth_traffic:.2f}%. This indicates that rapid increases in page growth are associated with significant changes in traffic, potentially penalizing sharp increases in page growth after a lag of {lag_period} periods.")
+            st.write(f"**Rapid Growth (above {rapid_growth_threshold:.2f}%)**: When normalized page growth exceeds this threshold, the average lagged and adjusted traffic change rate is {rapid_growth_traffic:.2f}%. This indicates that rapid increases in page growth are associated with significant changes in traffic, potentially penalizing sharp increases in page growth after a lag of {lag_period} periods.")
 
         if rapid_growth_std is not None and not np.isnan(rapid_growth_std):
-            st.write(f"**Volatility during Rapid Growth**: The standard deviation of the lagged traffic change rate during periods of rapid growth is {rapid_growth_std:.2f}%, indicating high volatility and suggesting that traffic responses are unpredictable during these times.")
+            st.write(f"**Volatility during Rapid Growth**: The standard deviation of the lagged and adjusted traffic change rate during periods of rapid growth is {rapid_growth_std:.2f}%, indicating high volatility and suggesting that traffic responses are unpredictable during these times.")
 
         # Summary of findings
         st.write("### Summary of Findings")
@@ -119,12 +125,12 @@ if uploaded_file is not None:
             line=dict(color='blue', width=2)
         ))
 
-        # Lagged Traffic Change Rate Line
+        # Lagged and Adjusted Traffic Change Rate Line
         fig.add_trace(go.Scatter(
             x=df_ma[date_col],
-            y=df_ma[f"Lagged Traffic Change {window_size}MA"],
+            y=df_ma[f"Lagged Adjusted Traffic Change {window_size}MA"],
             mode='lines',
-            name='Lagged Traffic Change Rate (%)',
+            name='Lagged & Adjusted Traffic Change Rate (%)',
             line=dict(color='red', width=2)
         ))
 
