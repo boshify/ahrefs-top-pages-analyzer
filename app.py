@@ -11,7 +11,7 @@ if uploaded_file is not None:
     
     st.write("Data Preview:")
     st.write(df.head())
-    
+
     # Allow user to select columns
     page_col = st.selectbox("Select the column for 'Pages':", df.columns)
     traffic_col = st.selectbox("Select the column for 'Traffic':", df.columns)
@@ -32,9 +32,17 @@ if uploaded_file is not None:
     st.header("Analysis")
     
     def analyze_growth(df, window_size):
+        if len(df) < window_size:
+            st.warning(f"Not enough data to calculate a {window_size}-period moving average.")
+            return None, None, None
+
         df[f"Page Growth {window_size}M MA"] = df['Page Growth Rate'].rolling(window=window_size).mean()
         df[f"Traffic Change {window_size}M MA"] = df['Traffic Change Rate'].rolling(window=window_size).mean()
         df_ma = df.dropna(subset=[f"Page Growth {window_size}M MA", f"Traffic Change {window_size}M MA"])
+
+        if df_ma.empty:
+            st.warning("Insufficient data after applying the moving average. Please try a shorter timeframe or adjust your data.")
+            return None, None, None
 
         correlation_ma = df_ma[[f"Page Growth {window_size}M MA", f"Traffic Change {window_size}M MA"]].corr().iloc[0, 1]
         
@@ -52,9 +60,13 @@ if uploaded_file is not None:
 
     correlation, stable_growth_traffic, rapid_growth_traffic = analyze_growth(df.copy(), window_size)
     
-    st.subheader(f"{window_size}-Period Moving Average:")
-    st.write(f"Correlation: {correlation:.4f}")
-    st.write(f"Stable Growth Traffic Change: {stable_growth_traffic:.2f}%")
-    st.write(f"Rapid Growth Traffic Change: {rapid_growth_traffic:.2f}%")
+    if correlation is not None:
+        st.subheader(f"{window_size}-Period Moving Average:")
+        st.write(f"Correlation: {correlation:.4f}")
+        st.write(f"Stable Growth Traffic Change: {stable_growth_traffic:.2f}%")
+        st.write(f"Rapid Growth Traffic Change: {rapid_growth_traffic:.2f}%")
+    else:
+        st.error("Analysis could not be completed due to insufficient data or a calculation error.")
     
     st.write("Based on these findings, the app has analyzed the moving averages and provided insights into how the twiddler algorithm might be reacting to different growth scenarios.")
+
