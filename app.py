@@ -30,11 +30,7 @@ if uploaded_file is not None:
     elif date_frame == 'monthly':
         df = df.resample('M', on=date_col).sum().reset_index().sort_values(by=date_col)
     
-    # Handling potential division by zero or other anomalies
-    df[page_col] = pd.to_numeric(df[page_col], errors='coerce').replace(0, np.nan)
-    df[traffic_col] = pd.to_numeric(df[traffic_col], errors='coerce').replace(0, np.nan)
-    
-    # Calculate growth rates
+    # Calculate growth rates including negative percentages
     df['Page Growth Rate'] = df[page_col].pct_change() * 100
     df['Traffic Change Rate'] = df[traffic_col].pct_change() * 100
 
@@ -46,7 +42,7 @@ if uploaded_file is not None:
     def analyze_growth(df, window_size):
         if len(df) < window_size:
             st.warning(f"Not enough data to calculate a {window_size}-period moving average.")
-            return None, None, None
+            return None, None, None, None
 
         df[f"Page Growth {window_size}MA"] = df['Page Growth Rate'].rolling(window=window_size).mean()
         df[f"Traffic Change {window_size}MA"] = df['Traffic Change Rate'].rolling(window=window_size).mean()
@@ -54,7 +50,7 @@ if uploaded_file is not None:
 
         if df_ma.empty:
             st.warning("Insufficient data after applying the moving average. Please try a shorter window size or adjust your data.")
-            return None, None, None
+            return None, None, None, None
 
         correlation_ma = df_ma[[f"Page Growth {window_size}MA", f"Traffic Change {window_size}MA"]].corr().iloc[0, 1]
         
@@ -82,12 +78,12 @@ if uploaded_file is not None:
         fig, ax1 = plt.subplots(figsize=(10, 6))
 
         ax1.set_xlabel('Date')
-        ax1.set_ylabel('Page Growth Rate', color='tab:blue')
+        ax1.set_ylabel('Page Growth Rate (%)', color='tab:blue')
         ax1.plot(df_ma[date_col], df_ma[f"Page Growth {window_size}MA"], color='tab:blue', label=f'Page Growth {window_size}MA')
         ax1.tick_params(axis='y', labelcolor='tab:blue')
 
         ax2 = ax1.twinx()
-        ax2.set_ylabel('Traffic Change Rate', color='tab:red')
+        ax2.set_ylabel('Traffic Change Rate (%)', color='tab:red')
         ax2.plot(df_ma[date_col], df_ma[f"Traffic Change {window_size}MA"], color='tab:red', label=f'Traffic Change {window_size}MA')
         ax2.tick_params(axis='y', labelcolor='tab:red')
 
