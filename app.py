@@ -59,20 +59,29 @@ if uploaded_file is not None:
 
         stable_growth_traffic_change = df_ma[stable_growth_mask][f"Traffic Change {window_size}MA"].mean()
         rapid_growth_traffic_change = df_ma[rapid_growth_mask][f"Traffic Change {window_size}MA"].mean()
+        rapid_growth_traffic_std = df_ma[rapid_growth_mask][f"Traffic Change {window_size}MA"].std()
 
-        return correlation_ma, stable_growth_traffic_change, rapid_growth_traffic_change, df_ma
+        return correlation_ma, stable_growth_traffic_change, rapid_growth_traffic_change, rapid_growth_traffic_std, df_ma
 
     # Allow user to select the moving average window size
     max_window_size = len(df)
     window_size = st.slider(f"Select Moving Average Window ({date_frame})", min_value=1, max_value=max_window_size, value=3, step=1)
 
-    correlation, stable_growth_traffic, rapid_growth_traffic, df_ma = analyze_growth(df.copy(), window_size)
+    correlation, stable_growth_traffic, rapid_growth_traffic, rapid_growth_std, df_ma = analyze_growth(df.copy(), window_size)
     
     if correlation is not None:
         st.subheader(f"{window_size}-Period Moving Average ({date_frame}):")
         st.write(f"Correlation: {correlation:.4f}")
-        st.write(f"Stable Growth Traffic Change: {stable_growth_traffic:.2f}%")
-        st.write(f"Rapid Growth Traffic Change: {rapid_growth_traffic:.2f}%")
+
+        st.write("### Insights")
+        if stable_growth_traffic is not None:
+            st.write(f"**Stable Growth (between -2% and 6%)**: The average traffic change rate during periods of stable growth is {stable_growth_traffic:.2f}%. This indicates that the twiddler algorithm seems to reward stability, leading to consistent traffic changes during these periods.")
+
+        if rapid_growth_traffic is not None and not np.isnan(rapid_growth_traffic):
+            st.write(f"**Rapid Growth (above 10%)**: The average traffic change rate during periods of rapid growth is {rapid_growth_traffic:.2f}%, showing a penalty effect as traffic tends to decrease. This aligns with the idea that the algorithm penalizes sharp increases in page growth.")
+        
+        if rapid_growth_std is not None and not np.isnan(rapid_growth_std):
+            st.write(f"**Volatility during Rapid Growth**: The standard deviation of the traffic change rate during rapid growth periods is {rapid_growth_std:.2f}%, suggesting high volatility and unpredictable traffic changes during these times.")
 
         st.write("### Visualization")
         fig, ax1 = plt.subplots(figsize=(10, 6))
