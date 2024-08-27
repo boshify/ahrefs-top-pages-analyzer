@@ -116,7 +116,9 @@ if uploaded_file is not None:
 
         # Summary of findings
         st.write("### Summary of Findings")
-        st.write(f"Based on these findings, it appears the twiddler algorithm rewards growth stability in the range of {stable_min:.2f}% to {stable_max:.2f}% with positive traffic changes after a lag of {lag_period} periods. However, if page growth exceeds {rapid_growth_threshold:.2f}%, it is likely to reduce traffic by an average of {abs(rapid_growth_traffic):.2f}%, with a volatility of {rapid_growth_std:.2f}%, after the same lag. Monitoring 'Traffic per Page' provides insights into the efficiency of each page in generating traffic, which can vary significantly between stable and rapid growth periods.")
+        summary_tpp_change = stable_growth_tpp - rapid_growth_tpp if stable_growth_tpp is not None and rapid_growth_tpp is not None else 'N/A'
+        tpp_summary = f"with a change in Traffic per Page of {summary_tpp_change:.2f} from stable to rapid growth periods" if isinstance(summary_tpp_change, float) else ""
+        st.write(f"Based on these findings, it appears the twiddler algorithm rewards growth stability in the range of {stable_min:.2f}% to {stable_max:.2f}% with positive traffic changes after a lag of {lag_period} periods. However, if page growth exceeds {rapid_growth_threshold:.2f}%, it is likely to reduce traffic by an average of {abs(rapid_growth_traffic):.2f}%, with a volatility of {rapid_growth_std:.2f}%, after the same lag, {tpp_summary}.")
 
         st.write("### Visualization")
         
