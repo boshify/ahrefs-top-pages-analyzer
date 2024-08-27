@@ -4,7 +4,7 @@ import numpy as np
 import plotly.graph_objs as go
 import math
 
-st.title('Growth Rate Analyzer with Lagged Correlation and Page Sensitivity')
+st.title('Growth Rate Analyzer with Lagged Correlation, Page Sensitivity, and Traffic per Page')
 
 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
@@ -34,7 +34,10 @@ if uploaded_file is not None:
     # Calculate growth rates including negative percentages
     df['Page Growth Rate'] = df[page_col].pct_change() * 100
     df['Traffic Change Rate'] = df[traffic_col].pct_change() * 100
-    
+
+    # Calculate Traffic per Page
+    df['Traffic per Page'] = df[traffic_col] / df[page_col]
+
     # Normalize the growth rate by the total number of pages
     df['Normalized Page Growth Rate'] = df['Page Growth Rate'] / np.log1p(df[page_col])
 
@@ -45,15 +48,17 @@ if uploaded_file is not None:
     df['Adjusted Traffic Change Rate'] = df['Traffic Change Rate'] * (1 - decay_factor * np.log1p(df[page_col]))
 
     st.write("Calculated Growth Rates:")
-    st.write(df[[date_col, 'Page Growth Rate', 'Normalized Page Growth Rate', 'Adjusted Traffic Change Rate']].dropna().head())
+    st.write(df[[date_col, 'Page Growth Rate', 'Normalized Page Growth Rate', 'Traffic Change Rate', 'Traffic per Page', 'Adjusted Traffic Change Rate']].dropna().head())
 
     # Allow user to select the lag period
     lag_period = st.slider("Select Lag Period (in periods)", min_value=0, max_value=12, value=0, step=1)
 
     if lag_period > 0:
         df['Lagged Adjusted Traffic Change Rate'] = df['Adjusted Traffic Change Rate'].shift(lag_period)
+        df['Lagged Traffic per Page'] = df['Traffic per Page'].shift(lag_period)
     else:
         df['Lagged Adjusted Traffic Change Rate'] = df['Adjusted Traffic Change Rate']
+        df['Lagged Traffic per Page'] = df['Traffic per Page']
 
     st.header("Analysis")
     
@@ -64,7 +69,8 @@ if uploaded_file is not None:
 
         df[f"Normalized Page Growth {window_size}MA"] = df['Normalized Page Growth Rate'].rolling(window=window_size).mean()
         df[f"Lagged Adjusted Traffic Change {window_size}MA"] = df['Lagged Adjusted Traffic Change Rate'].rolling(window=window_size).mean()
-        df_ma = df.dropna(subset=[f"Normalized Page Growth {window_size}MA", f"Lagged Adjusted Traffic Change {window_size}MA"])
+        df[f"Lagged Traffic per Page {window_size}MA"] = df['Lagged Traffic per Page'].rolling(window=window_size).mean()
+        df_ma = df.dropna(subset=[f"Normalized Page Growth {window_size}MA", f"Lagged Adjusted Traffic Change {window_size}MA", f"Lagged Traffic per Page {window_size}MA"])
 
         if df_ma.empty:
             st.warning("Insufficient data after applying the moving average. Please try a shorter window size or adjust your data.")
@@ -107,9 +113,12 @@ if uploaded_file is not None:
         if rapid_growth_std is not None and not np.isnan(rapid_growth_std):
             st.write(f"**Volatility during Rapid Growth**: The standard deviation of the lagged and adjusted traffic change rate during periods of rapid growth is {rapid_growth_std:.2f}%, indicating high volatility and suggesting that traffic responses are unpredictable during these times.")
 
+        # Add Traffic per Page insights
+        st.write("**Traffic per Page**: The average Traffic per Page metric gives you an indication of how efficiently each page contributes to overall traffic. Monitoring changes in this metric can provide insights into the overall quality and performance of your pages over time.")
+
         # Summary of findings
         st.write("### Summary of Findings")
-        st.write(f"Based on these findings, it appears the twiddler algorithm rewards growth stability in the range of {stable_min:.2f}% to {stable_max:.2f}% with positive traffic changes after a lag of {lag_period} periods. However, if normalized page growth exceeds {rapid_growth_threshold:.2f}%, it is likely to reduce traffic by an average of {abs(rapid_growth_traffic):.2f}%, with a volatility of {rapid_growth_std:.2f}%, after the same lag.")
+        st.write(f"Based on these findings, it appears the twiddler algorithm rewards growth stability in the range of {stable_min:.2f}% to {stable_max:.2f}% with positive traffic changes after a lag of {lag_period} periods. However, if normalized page growth exceeds {rapid_growth_threshold:.2f}%, it is likely to reduce traffic by an average of {abs(rapid_growth_traffic):.2f}%, with a volatility of {rapid_growth_std:.2f}%, after the same lag. Additionally, monitoring 'Traffic per Page' can provide insights into the overall effectiveness and quality of your pages.")
 
         st.write("### Visualization")
         
@@ -132,6 +141,15 @@ if uploaded_file is not None:
             mode='lines',
             name='Lagged & Adjusted Traffic Change Rate (%)',
             line=dict(color='red', width=2)
+        ))
+
+        # Traffic per Page Line
+        fig.add_trace(go.Scatter(
+            x=df_ma[date_col],
+            y=df_ma[f"Lagged Traffic per Page {window_size}MA"],
+            mode='lines',
+            name='Lagged Traffic per Page',
+            line=dict(color='green', width=2, dash='dash')
         ))
 
         # Add zero line for clarity
