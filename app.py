@@ -42,7 +42,7 @@ if uploaded_file is not None:
     st.write(df[[date_col, 'Page Growth Rate', 'Normalized Page Growth Rate', 'Traffic Change Rate']].dropna().head())
 
     # Allow user to select the lag period
-    lag_period = st.slider("Select Lag Period (in periods)", min_value=0, max_value=12, value=0, step=1)
+    lag_period = st.slider("Select Lag Period (in periods)", min_value=0, max_value=31, value=0, step=1)
 
     if lag_period > 0:
         df['Lagged Traffic Change Rate'] = df['Traffic Change Rate'].shift(lag_period)
