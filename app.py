@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 st.title('Growth Rate Analyzer')
 
@@ -63,19 +64,35 @@ if uploaded_file is not None:
         stable_growth_traffic_change = df_ma[stable_growth_mask][f"Traffic Change {window_size}MA"].mean()
         rapid_growth_traffic_change = df_ma[rapid_growth_mask][f"Traffic Change {window_size}MA"].mean()
 
-        return correlation_ma, stable_growth_traffic_change, rapid_growth_traffic_change
+        return correlation_ma, stable_growth_traffic_change, rapid_growth_traffic_change, df_ma
 
     # Allow user to select the moving average window size
     max_window_size = len(df)
     window_size = st.slider(f"Select Moving Average Window ({date_frame})", min_value=1, max_value=max_window_size, value=3, step=1)
 
-    correlation, stable_growth_traffic, rapid_growth_traffic = analyze_growth(df.copy(), window_size)
+    correlation, stable_growth_traffic, rapid_growth_traffic, df_ma = analyze_growth(df.copy(), window_size)
     
     if correlation is not None:
         st.subheader(f"{window_size}-Period Moving Average ({date_frame}):")
         st.write(f"Correlation: {correlation:.4f}")
         st.write(f"Stable Growth Traffic Change: {stable_growth_traffic:.2f}%")
         st.write(f"Rapid Growth Traffic Change: {rapid_growth_traffic:.2f}%")
+
+        st.write("### Visualization")
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+
+        ax1.set_xlabel('Date')
+        ax1.set_ylabel('Page Growth Rate', color='tab:blue')
+        ax1.plot(df_ma[date_col], df_ma[f"Page Growth {window_size}MA"], color='tab:blue', label=f'Page Growth {window_size}MA')
+        ax1.tick_params(axis='y', labelcolor='tab:blue')
+
+        ax2 = ax1.twinx()
+        ax2.set_ylabel('Traffic Change Rate', color='tab:red')
+        ax2.plot(df_ma[date_col], df_ma[f"Traffic Change {window_size}MA"], color='tab:red', label=f'Traffic Change {window_size}MA')
+        ax2.tick_params(axis='y', labelcolor='tab:red')
+
+        fig.tight_layout()
+        st.pyplot(fig)
     else:
         st.error("Analysis could not be completed due to insufficient data or a calculation error.")
     
