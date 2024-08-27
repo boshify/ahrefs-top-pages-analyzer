@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-st.title('Growth Rate Analyzer')
+st.title('Growth Rate Analyzer with Lagged Correlation')
 
 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
@@ -37,6 +37,14 @@ if uploaded_file is not None:
     st.write("Calculated Growth Rates:")
     st.write(df[[date_col, 'Page Growth Rate', 'Traffic Change Rate']].dropna().head())
 
+    # Allow user to select the lag period
+    lag_period = st.slider("Select Lag Period (in periods)", min_value=0, max_value=12, value=0, step=1)
+
+    if lag_period > 0:
+        df['Lagged Traffic Change Rate'] = df['Traffic Change Rate'].shift(lag_period)
+    else:
+        df['Lagged Traffic Change Rate'] = df['Traffic Change Rate']
+
     st.header("Analysis")
     
     def analyze_growth(df, window_size):
@@ -45,14 +53,14 @@ if uploaded_file is not None:
             return None, None, None, None, None
 
         df[f"Page Growth {window_size}MA"] = df['Page Growth Rate'].rolling(window=window_size).mean()
-        df[f"Traffic Change {window_size}MA"] = df['Traffic Change Rate'].rolling(window=window_size).mean()
-        df_ma = df.dropna(subset=[f"Page Growth {window_size}MA", f"Traffic Change {window_size}MA"])
+        df[f"Lagged Traffic Change {window_size}MA"] = df['Lagged Traffic Change Rate'].rolling(window=window_size).mean()
+        df_ma = df.dropna(subset=[f"Page Growth {window_size}MA", f"Lagged Traffic Change {window_size}MA"])
 
         if df_ma.empty:
             st.warning("Insufficient data after applying the moving average. Please try a shorter window size or adjust your data.")
             return None, None, None, None, None
 
-        correlation_ma = df_ma[[f"Page Growth {window_size}MA", f"Traffic Change {window_size}MA"]].corr().iloc[0, 1]
+        correlation_ma = df_ma[[f"Page Growth {window_size}MA", f"Lagged Traffic Change {window_size}MA"]].corr().iloc[0, 1]
         
         # Dynamically calculate stable and rapid growth thresholds
         stable_min = df_ma[f"Page Growth {window_size}MA"].quantile(0.25)
@@ -63,9 +71,9 @@ if uploaded_file is not None:
         stable_growth_mask = (df_ma[f"Page Growth {window_size}MA"] >= stable_min) & (df_ma[f"Page Growth {window_size}MA"] <= stable_max)
         rapid_growth_mask = df_ma[f"Page Growth {window_size}MA"] > rapid_growth_threshold
 
-        stable_growth_traffic_change = df_ma[stable_growth_mask][f"Traffic Change {window_size}MA"].mean()
-        rapid_growth_traffic_change = df_ma[rapid_growth_mask][f"Traffic Change {window_size}MA"].mean()
-        rapid_growth_traffic_std = df_ma[rapid_growth_mask][f"Traffic Change {window_size}MA"].std()
+        stable_growth_traffic_change = df_ma[stable_growth_mask][f"Lagged Traffic Change {window_size}MA"].mean()
+        rapid_growth_traffic_change = df_ma[rapid_growth_mask][f"Lagged Traffic Change {window_size}MA"].mean()
+        rapid_growth_traffic_std = df_ma[rapid_growth_mask][f"Lagged Traffic Change {window_size}MA"].std()
 
         return correlation_ma, stable_growth_traffic_change, rapid_growth_traffic_change, rapid_growth_traffic_std, df_ma, stable_min, stable_max, rapid_growth_threshold
 
@@ -77,21 +85,21 @@ if uploaded_file is not None:
     
     if correlation is not None:
         st.subheader(f"{window_size}-Period Moving Average ({date_frame}):")
-        st.write(f"Correlation: {correlation:.4f}")
+        st.write(f"Correlation (with {lag_period}-period lag): {correlation:.4f}")
 
         st.write("### Insights")
         if stable_growth_traffic is not None:
-            st.write(f"**Stable Growth (between {stable_min:.2f}% and {stable_max:.2f}%)**: During periods where page growth remains within this stable range, the average traffic change rate is {stable_growth_traffic:.2f}%. This suggests that the twiddler algorithm rewards stable page growth, resulting in consistent increases in traffic.")
+            st.write(f"**Stable Growth (between {stable_min:.2f}% and {stable_max:.2f}%)**: During periods where page growth remains within this stable range, the average lagged traffic change rate is {stable_growth_traffic:.2f}%. This suggests that the twiddler algorithm rewards stable page growth, resulting in consistent increases in traffic after a lag of {lag_period} periods.")
 
         if rapid_growth_traffic is not None and not np.isnan(rapid_growth_traffic):
-            st.write(f"**Rapid Growth (above {rapid_growth_threshold:.2f}%)**: When page growth exceeds this threshold, the average traffic change rate is {rapid_growth_traffic:.2f}%. This indicates that rapid increases in page growth are associated with significant changes in traffic, potentially penalizing sharp increases in page growth.")
+            st.write(f"**Rapid Growth (above {rapid_growth_threshold:.2f}%)**: When page growth exceeds this threshold, the average lagged traffic change rate is {rapid_growth_traffic:.2f}%. This indicates that rapid increases in page growth are associated with significant changes in traffic, potentially penalizing sharp increases in page growth after a lag of {lag_period} periods.")
 
         if rapid_growth_std is not None and not np.isnan(rapid_growth_std):
-            st.write(f"**Volatility during Rapid Growth**: The standard deviation of the traffic change rate during periods of rapid growth is {rapid_growth_std:.2f}%, indicating high volatility and suggesting that traffic responses are unpredictable during these times.")
+            st.write(f"**Volatility during Rapid Growth**: The standard deviation of the lagged traffic change rate during periods of rapid growth is {rapid_growth_std:.2f}%, indicating high volatility and suggesting that traffic responses are unpredictable during these times.")
 
         # Summary of findings
         st.write("### Summary of Findings")
-        st.write(f"Based on these findings, it appears the twiddler algorithm rewards growth stability in the range of {stable_min:.2f}% to {stable_max:.2f}% with positive traffic changes. However, if page growth exceeds {rapid_growth_threshold:.2f}%, it is likely to reduce traffic by an average of {abs(rapid_growth_traffic):.2f}%, with a volatility of {rapid_growth_std:.2f}%.")
+        st.write(f"Based on these findings, it appears the twiddler algorithm rewards growth stability in the range of {stable_min:.2f}% to {stable_max:.2f}% with positive traffic changes after a lag of {lag_period} periods. However, if page growth exceeds {rapid_growth_threshold:.2f}%, it is likely to reduce traffic by an average of {abs(rapid_growth_traffic):.2f}%, with a volatility of {rapid_growth_std:.2f}%, after the same lag.")
 
         st.write("### Visualization")
         fig, ax1 = plt.subplots(figsize=(10, 6))
@@ -102,8 +110,8 @@ if uploaded_file is not None:
         ax1.tick_params(axis='y', labelcolor='tab:blue')
 
         ax2 = ax1.twinx()
-        ax2.set_ylabel('Traffic Change Rate (%)', color='tab:red')
-        ax2.plot(df_ma[date_col], df_ma[f"Traffic Change {window_size}MA"], color='tab:red', label=f'Traffic Change {window_size}MA')
+        ax2.set_ylabel('Lagged Traffic Change Rate (%)', color='tab:red')
+        ax2.plot(df_ma[date_col], df_ma[f"Lagged Traffic Change {window_size}MA"], color='tab:red', label=f'Lagged Traffic Change {window_size}MA')
         ax2.tick_params(axis='y', labelcolor='tab:red')
 
         fig.tight_layout()
