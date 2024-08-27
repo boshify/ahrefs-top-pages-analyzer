@@ -29,6 +29,11 @@ if uploaded_file is not None:
         df = df.resample('W-Mon', on=date_col).sum().reset_index().sort_values(by=date_col)
     elif date_frame == 'monthly':
         df = df.resample('M', on=date_col).sum().reset_index().sort_values(by=date_col)
+
+    # Allow user to set the growth rate thresholds
+    stable_min = st.number_input("Enter minimum stable growth rate (%)", value=-2.0, step=0.1)
+    stable_max = st.number_input("Enter maximum stable growth rate (%)", value=6.0, step=0.1)
+    rapid_growth_threshold = st.number_input("Enter rapid growth threshold (%)", value=10.0, step=0.1)
     
     # Calculate growth rates including negative percentages
     df['Page Growth Rate'] = df[page_col].pct_change() * 100
@@ -39,7 +44,7 @@ if uploaded_file is not None:
 
     st.header("Analysis")
     
-    def analyze_growth(df, window_size):
+    def analyze_growth(df, window_size, stable_min, stable_max, rapid_growth_threshold):
         if len(df) < window_size:
             st.warning(f"Not enough data to calculate a {window_size}-period moving average.")
             return None, None, None, None, None
@@ -55,8 +60,8 @@ if uploaded_file is not None:
         correlation_ma = df_ma[[f"Page Growth {window_size}MA", f"Traffic Change {window_size}MA"]].corr().iloc[0, 1]
         
         # Calculating stable growth, rapid growth, and volatility during rapid growth
-        stable_growth_mask = (df_ma[f"Page Growth {window_size}MA"] >= -2) & (df_ma[f"Page Growth {window_size}MA"] <= 6)
-        rapid_growth_mask = df_ma[f"Page Growth {window_size}MA"] > 10
+        stable_growth_mask = (df_ma[f"Page Growth {window_size}MA"] >= stable_min) & (df_ma[f"Page Growth {window_size}MA"] <= stable_max)
+        rapid_growth_mask = df_ma[f"Page Growth {window_size}MA"] > rapid_growth_threshold
 
         stable_growth_traffic_change = df_ma[stable_growth_mask][f"Traffic Change {window_size}MA"].mean()
         rapid_growth_traffic_change = df_ma[rapid_growth_mask][f"Traffic Change {window_size}MA"].mean()
@@ -68,7 +73,7 @@ if uploaded_file is not None:
     max_window_size = len(df)
     window_size = st.slider(f"Select Moving Average Window ({date_frame})", min_value=1, max_value=max_window_size, value=3, step=1)
 
-    correlation, stable_growth_traffic, rapid_growth_traffic, rapid_growth_std, df_ma = analyze_growth(df.copy(), window_size)
+    correlation, stable_growth_traffic, rapid_growth_traffic, rapid_growth_std, df_ma = analyze_growth(df.copy(), window_size, stable_min, stable_max, rapid_growth_threshold)
     
     if correlation is not None:
         st.subheader(f"{window_size}-Period Moving Average ({date_frame}):")
@@ -76,10 +81,10 @@ if uploaded_file is not None:
 
         st.write("### Insights")
         if stable_growth_traffic is not None:
-            st.write(f"**Stable Growth (between -2% and 6%)**: The average traffic change rate during periods of stable growth is {stable_growth_traffic:.2f}%. This indicates that the twiddler algorithm seems to reward stability, leading to consistent traffic changes during these periods.")
+            st.write(f"**Stable Growth (between {stable_min}% and {stable_max}%)**: The average traffic change rate during periods of stable growth is {stable_growth_traffic:.2f}%. This indicates that the twiddler algorithm seems to reward stability, leading to consistent traffic changes during these periods.")
 
         if rapid_growth_traffic is not None and not np.isnan(rapid_growth_traffic):
-            st.write(f"**Rapid Growth (above 10%)**: The average traffic change rate during periods of rapid growth is {rapid_growth_traffic:.2f}%, showing a penalty effect as traffic tends to decrease. This aligns with the idea that the algorithm penalizes sharp increases in page growth.")
+            st.write(f"**Rapid Growth (above {rapid_growth_threshold}%)**: The average traffic change rate during periods of rapid growth is {rapid_growth_traffic:.2f}%, showing a penalty effect as traffic tends to decrease. This aligns with the idea that the algorithm penalizes sharp increases in page growth.")
         
         if rapid_growth_std is not None and not np.isnan(rapid_growth_std):
             st.write(f"**Volatility during Rapid Growth**: The standard deviation of the traffic change rate during rapid growth periods is {rapid_growth_std:.2f}%, suggesting high volatility and unpredictable traffic changes during these times.")
@@ -87,9 +92,9 @@ if uploaded_file is not None:
         # Summary of findings
         st.write("### Summary of Findings")
         if stable_growth_traffic > 0:
-            st.write("Based on these findings, it appears the twiddler algorithm rewards growth stability in the range of -2% to 6% with positive traffic changes.")
+            st.write(f"Based on these findings, it appears the twiddler algorithm rewards growth stability in the range of {stable_min}% to {stable_max}% with positive traffic changes.")
         if rapid_growth_traffic < 0:
-            st.write("The algorithm seems to penalize growth when it exceeds 10%, leading to a decrease in traffic. The volatility during these periods also suggests that the traffic response is unpredictable.")
+            st.write(f"The algorithm seems to penalize growth when it exceeds {rapid_growth_threshold}%, leading to a decrease in traffic. The volatility during these periods also suggests that the traffic response is unpredictable.")
 
         st.write("### Visualization")
         fig, ax1 = plt.subplots(figsize=(10, 6))
@@ -110,4 +115,3 @@ if uploaded_file is not None:
         st.error("Analysis could not be completed due to insufficient data or a calculation error.")
     
     st.write("Based on these findings, the app has analyzed the moving averages and provided insights into how the twiddler algorithm might be reacting to different growth scenarios.")
-
