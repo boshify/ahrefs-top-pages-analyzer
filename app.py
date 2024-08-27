@@ -42,7 +42,7 @@ if uploaded_file is not None:
     def analyze_growth(df, window_size):
         if len(df) < window_size:
             st.warning(f"Not enough data to calculate a {window_size}-period moving average.")
-            return None, None, None, None
+            return None, None, None, None, None
 
         df[f"Page Growth {window_size}MA"] = df['Page Growth Rate'].rolling(window=window_size).mean()
         df[f"Traffic Change {window_size}MA"] = df['Traffic Change Rate'].rolling(window=window_size).mean()
@@ -50,10 +50,11 @@ if uploaded_file is not None:
 
         if df_ma.empty:
             st.warning("Insufficient data after applying the moving average. Please try a shorter window size or adjust your data.")
-            return None, None, None, None
+            return None, None, None, None, None
 
         correlation_ma = df_ma[[f"Page Growth {window_size}MA", f"Traffic Change {window_size}MA"]].corr().iloc[0, 1]
         
+        # Calculating stable growth, rapid growth, and volatility during rapid growth
         stable_growth_mask = (df_ma[f"Page Growth {window_size}MA"] >= -2) & (df_ma[f"Page Growth {window_size}MA"] <= 6)
         rapid_growth_mask = df_ma[f"Page Growth {window_size}MA"] > 10
 
@@ -82,6 +83,13 @@ if uploaded_file is not None:
         
         if rapid_growth_std is not None and not np.isnan(rapid_growth_std):
             st.write(f"**Volatility during Rapid Growth**: The standard deviation of the traffic change rate during rapid growth periods is {rapid_growth_std:.2f}%, suggesting high volatility and unpredictable traffic changes during these times.")
+
+        # Summary of findings
+        st.write("### Summary of Findings")
+        if stable_growth_traffic > 0:
+            st.write("Based on these findings, it appears the twiddler algorithm rewards growth stability in the range of -2% to 6% with positive traffic changes.")
+        if rapid_growth_traffic < 0:
+            st.write("The algorithm seems to penalize growth when it exceeds 10%, leading to a decrease in traffic. The volatility during these periods also suggests that the traffic response is unpredictable.")
 
         st.write("### Visualization")
         fig, ax1 = plt.subplots(figsize=(10, 6))
