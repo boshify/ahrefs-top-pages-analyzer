@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+import plotly.graph_objs as go
 
 st.title('Growth Rate Analyzer with Lagged Correlation')
 
@@ -102,19 +102,45 @@ if uploaded_file is not None:
         st.write(f"Based on these findings, it appears the twiddler algorithm rewards growth stability in the range of {stable_min:.2f}% to {stable_max:.2f}% with positive traffic changes after a lag of {lag_period} periods. However, if page growth exceeds {rapid_growth_threshold:.2f}%, it is likely to reduce traffic by an average of {abs(rapid_growth_traffic):.2f}%, with a volatility of {rapid_growth_std:.2f}%, after the same lag.")
 
         st.write("### Visualization")
-        fig, ax1 = plt.subplots(figsize=(10, 6))
+        
+        # Plotly visualization
+        fig = go.Figure()
 
-        ax1.set_xlabel('Date')
-        ax1.set_ylabel('Page Growth Rate (%)', color='tab:blue')
-        ax1.plot(df_ma[date_col], df_ma[f"Page Growth {window_size}MA"], color='tab:blue', label=f'Page Growth {window_size}MA')
-        ax1.tick_params(axis='y', labelcolor='tab:blue')
+        # Page Growth Rate Line
+        fig.add_trace(go.Scatter(
+            x=df_ma[date_col],
+            y=df_ma[f"Page Growth {window_size}MA"],
+            mode='lines',
+            name='Page Growth Rate (%)',
+            line=dict(color='blue', width=2)
+        ))
 
-        ax2 = ax1.twinx()
-        ax2.set_ylabel('Lagged Traffic Change Rate (%)', color='tab:red')
-        ax2.plot(df_ma[date_col], df_ma[f"Lagged Traffic Change {window_size}MA"], color='tab:red', label=f'Lagged Traffic Change {window_size}MA')
-        ax2.tick_params(axis='y', labelcolor='tab:red')
+        # Lagged Traffic Change Rate Line
+        fig.add_trace(go.Scatter(
+            x=df_ma[date_col],
+            y=df_ma[f"Lagged Traffic Change {window_size}MA"],
+            mode='lines',
+            name='Lagged Traffic Change Rate (%)',
+            line=dict(color='red', width=2)
+        ))
 
-        fig.tight_layout()
-        st.pyplot(fig)
+        # Add zero line for clarity
+        fig.add_shape(type="line",
+                      x0=df_ma[date_col].min(), x1=df_ma[date_col].max(),
+                      y0=0, y1=0,
+                      line=dict(color="gray", width=1, dash="dash"))
+
+        # Layout updates for a "cool and sexy" look
+        fig.update_layout(
+            title=f"{window_size}-Period Moving Average with {lag_period}-Period Lag",
+            xaxis_title="Date",
+            yaxis_title="Percentage (%)",
+            template="plotly_dark",
+            hovermode="x unified",
+            legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
+            margin=dict(l=40, r=40, t=40, b=40)
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
     else:
         st.error("Analysis could not be completed due to insufficient data or a calculation error.")
