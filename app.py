@@ -81,20 +81,17 @@ if uploaded_file is not None:
 
         st.write("### Insights")
         if stable_growth_traffic is not None:
-            st.write(f"**Stable Growth (between {stable_min:.2f}% and {stable_max:.2f}%)**: The average traffic change rate during periods of stable growth is {stable_growth_traffic:.2f}%. This indicates that the twiddler algorithm seems to reward stability, leading to consistent traffic changes during these periods.")
+            st.write(f"**Stable Growth (between {stable_min:.2f}% and {stable_max:.2f}%)**: During periods where page growth remains within this stable range, the average traffic change rate is {stable_growth_traffic:.2f}%. This suggests that the twiddler algorithm rewards stable page growth, resulting in consistent increases in traffic.")
 
         if rapid_growth_traffic is not None and not np.isnan(rapid_growth_traffic):
-            st.write(f"**Rapid Growth (above {rapid_growth_threshold:.2f}%)**: The average traffic change rate during periods of rapid growth is {rapid_growth_traffic:.2f}%, showing a penalty effect as traffic tends to decrease. This aligns with the idea that the algorithm penalizes sharp increases in page growth.")
-        
+            st.write(f"**Rapid Growth (above {rapid_growth_threshold:.2f}%)**: When page growth exceeds this threshold, the average traffic change rate is {rapid_growth_traffic:.2f}%. This indicates that rapid increases in page growth are associated with significant changes in traffic, potentially penalizing sharp increases in page growth.")
+
         if rapid_growth_std is not None and not np.isnan(rapid_growth_std):
-            st.write(f"**Volatility during Rapid Growth**: The standard deviation of the traffic change rate during rapid growth periods is {rapid_growth_std:.2f}%, suggesting high volatility and unpredictable traffic changes during these times.")
+            st.write(f"**Volatility during Rapid Growth**: The standard deviation of the traffic change rate during periods of rapid growth is {rapid_growth_std:.2f}%, indicating high volatility and suggesting that traffic responses are unpredictable during these times.")
 
         # Summary of findings
         st.write("### Summary of Findings")
-        if stable_growth_traffic > 0:
-            st.write(f"Based on these findings, it appears the twiddler algorithm rewards growth stability in the range of {stable_min:.2f}% to {stable_max:.2f}% with positive traffic changes.")
-        if rapid_growth_traffic < 0:
-            st.write(f"The algorithm seems to penalize growth when it exceeds {rapid_growth_threshold:.2f}%, leading to a decrease in traffic. The volatility during these periods also suggests that the traffic response is unpredictable.")
+        st.write(f"Based on these findings, it appears the twiddler algorithm rewards growth stability in the range of {stable_min:.2f}% to {stable_max:.2f}% with positive traffic changes. However, if page growth exceeds {rapid_growth_threshold:.2f}%, it is likely to reduce traffic by an average of {abs(rapid_growth_traffic):.2f}%, with a volatility of {rapid_growth_std:.2f}%.")
 
         st.write("### Visualization")
         fig, ax1 = plt.subplots(figsize=(10, 6))
@@ -113,5 +110,3 @@ if uploaded_file is not None:
         st.pyplot(fig)
     else:
         st.error("Analysis could not be completed due to insufficient data or a calculation error.")
-    
-    st.write("Based on these findings, the app has analyzed the moving averages and provided insights into how the twiddler algorithm might be reacting to different growth scenarios.")
