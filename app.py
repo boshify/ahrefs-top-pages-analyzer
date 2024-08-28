@@ -194,35 +194,24 @@ if uploaded_file is not None:
         hovermode="x unified",
         legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
         margin=dict(l=40, r=40, t=40, b=40),
-        height=600  # Make the chart bigger
+        height=800  # Make the chart bigger
     )
 
     # Add scroll and zoom functionality
     fig.update_xaxes(rangeslider_visible=True)
 
-    # JavaScript callback to handle mouse wheel for scaling y-axes
-    fig.update_layout(
-        yaxis=dict(
-            scaleanchor="y2",
-            scaleratio=1
-        ),
-        yaxis2=dict(
-            scaleanchor="y",
-            scaleratio=1
-        )
-    )
+    # Adding Y-Axis Zoom In/Out Buttons
+    y_min, y_max = df['Traffic per Page'].min(), df['Traffic per Page'].max()
+    y2_min, y2_max = df['Page Change Rate'].min(), df['Page Change Rate'].max()
 
-    # Add custom JavaScript to handle the mouse wheel for scaling
-    fig.update_layout(
-        xaxis=dict(
-            rangeslider=dict(
-                visible=True
-            ),
-            type="date",
-            scaleanchor="y2",
-            scaleratio=1,
-            showgrid=True,
-        )
-    )
+    if st.button('Zoom In Y-Axis'):
+        y_min, y_max = y_min * 0.9, y_max * 0.9
+        y2_min, y2_max = y2_min * 0.9, y2_max * 0.9
+    if st.button('Zoom Out Y-Axis'):
+        y_min, y_max = y_min * 1.1, y_max * 1.1
+        y2_min, y2_max = y2_min * 1.1, y2_max * 1.1
+
+    fig.update_yaxes(range=[y_min, y_max], title_text="Traffic per Page", secondary_y=False)
+    fig.update_yaxes(range=[y2_min, y2_max], title_text="Percentage (%)", secondary_y=True)
 
     st.plotly_chart(fig, use_container_width=True)
