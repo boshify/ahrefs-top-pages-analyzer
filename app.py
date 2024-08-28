@@ -134,6 +134,9 @@ if uploaded_file is not None:
 
     st.write("### Visualization")
     
+    # Y-axis zoom slider
+    y_zoom = st.slider('Y-Axis Zoom Level', min_value=0.5, max_value=2.0, value=1.0, step=0.1)
+
     # Plotly visualization
     fig = go.Figure()
 
@@ -201,22 +204,11 @@ if uploaded_file is not None:
         height=600  # Make the chart bigger
     )
 
+    # Apply Y-Axis Zoom
+    fig.update_yaxes(range=[df['Traffic per Page'].min() * y_zoom, df['Traffic per Page'].max() * y_zoom], secondary_y=False)
+    fig.update_yaxes(range=[df['Traffic Change Rate'].min() * y_zoom, df['Traffic Change Rate'].max() * y_zoom], secondary_y=True)
+
     # Add scroll and zoom functionality
     fig.update_xaxes(rangeslider_visible=True)
-
-    # Adding Y-Axis Zoom In/Out Buttons
-    y_min, y_max = df['Traffic per Page'].min(), df['Traffic per Page'].max()
-    y2_min, y2_max = df['Page Change Rate'].min(), df['Page Change Rate'].max()
-
-    # Zoom In/Out Controls
-    if st.button('Zoom In Y-Axis'):
-        y_min, y_max = y_min * 0.9, y_max * 0.9
-        y2_min, y2_max = y2_min * 0.9, y2_max * 0.9
-    if st.button('Zoom Out Y-Axis'):
-        y_min, y_max = y_min * 1.1, y_max * 1.1
-        y2_min, y2_max = y2_min * 1.1, y2_max * 1.1
-
-    fig.update_yaxes(range=[y_min, y_max], title_text="Traffic per Page", secondary_y=False)
-    fig.update_yaxes(range=[y2_min, y2_max], title_text="Percentage (%)", secondary_y=True)
 
     st.plotly_chart(fig, use_container_width=True)
