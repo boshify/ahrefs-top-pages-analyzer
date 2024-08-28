@@ -75,139 +75,140 @@ with st.sidebar:
             else:
                 df[f"Lagged Traffic per Page {window_size}MA"] = df[f"Traffic per Page {window_size}MA"]
 
-# Display the visualization and ranking state report in the main page
-if uploaded_file is not None and date_col and page_col and traffic_col:
-    st.write("### Visualization")
-    
-    # Plotly visualization
-    fig = go.Figure()
+            # Ensure ranking state indicators are calculated correctly
+            df['Ranking State'] = np.where(df[f"Lagged Traffic per Page {window_size}MA"].diff() > 0, 'Positive', 'Negative')
 
-    # Page Growth Rate Line (right y-axis)
-    fig.add_trace(go.Scatter(
-        x=df[date_col],
-        y=df[f"Page Change {window_size}MA"],
-        mode='lines',
-        name='Page Change Rate (%)',
-        line=dict(color='blue', width=2),
-        yaxis="y2"
-    ))
+            st.write("### Visualization")
+            
+            # Plotly visualization
+            fig = go.Figure()
 
-    # Lagged Traffic Change Rate Line (right y-axis)
-    fig.add_trace(go.Scatter(
-        x=df[date_col],
-        y=df[f"Traffic Change {window_size}MA"],
-        mode='lines',
-        name='Traffic Change Rate (%)',
-        line=dict(color='red', width=2),
-        yaxis="y2"
-    ))
+            # Page Growth Rate Line (right y-axis)
+            fig.add_trace(go.Scatter(
+                x=df[date_col],
+                y=df[f"Page Change {window_size}MA"],
+                mode='lines',
+                name='Page Change Rate (%)',
+                line=dict(color='blue', width=2),
+                yaxis="y2"
+            ))
 
-    # Traffic per Page Line (left y-axis, solid line with increased thickness)
-    fig.add_trace(go.Scatter(
-        x=df[date_col],
-        y=df[f"Lagged Traffic per Page {window_size}MA"],
-        mode='lines',
-        name='Traffic per Page',
-        line=dict(color='green', width=4)  # Increase line thickness
-    ))
+            # Lagged Traffic Change Rate Line (right y-axis)
+            fig.add_trace(go.Scatter(
+                x=df[date_col],
+                y=df[f"Traffic Change {window_size}MA"],
+                mode='lines',
+                name='Traffic Change Rate (%)',
+                line=dict(color='red', width=2),
+                yaxis="y2"
+            ))
 
-    # Add ranking state indicators to match the ranking state report
-    for idx, row in df.iterrows():
-        if row.get('Ranking State') == 'Positive':
-            fig.add_vrect(
-                x0=row[date_col] - timedelta(days=1),
-                x1=row[date_col] + timedelta(days=1),
-                fillcolor="green", opacity=0.4, line_width=0  # More visible
-            )
-        elif row.get('Ranking State') == 'Negative':
-            fig.add_vrect(
-                x0=row[date_col] - timedelta(days=1),
-                x1=row[date_col] + timedelta(days=1),
-                fillcolor="red", opacity=0.4, line_width=0  # More visible
-            )
+            # Traffic per Page Line (left y-axis, solid line with increased thickness)
+            fig.add_trace(go.Scatter(
+                x=df[date_col],
+                y=df[f"Lagged Traffic per Page {window_size}MA"],
+                mode='lines',
+                name='Traffic per Page',
+                line=dict(color='green', width=4)  # Increase line thickness
+            ))
 
-    # Add zero line for clarity on the right y-axis
-    fig.add_shape(type="line",
-                  x0=df[date_col].min(), x1=df[date_col].max(),
-                  y0=0, y1=0,
-                  yref="y2",
-                  line=dict(color="gray", width=1, dash="dash"))
+            # Add ranking state indicators to match the ranking state report
+            for idx, row in df.iterrows():
+                if row['Ranking State'] == 'Positive':
+                    fig.add_vrect(
+                        x0=row[date_col] - timedelta(days=1),
+                        x1=row[date_col] + timedelta(days=1),
+                        fillcolor="green", opacity=0.4, line_width=0  # More visible
+                    )
+                elif row['Ranking State'] == 'Negative':
+                    fig.add_vrect(
+                        x0=row[date_col] - timedelta(days=1),
+                        x1=row[date_col] + timedelta(days=1),
+                        fillcolor="red", opacity=0.4, line_width=0  # More visible
+                    )
 
-    # Layout updates for a clear and appealing look
-    fig.update_layout(
-        title=f"{date_frame.capitalize()} Ranking State Visualization",
-        xaxis_title="Date",
-        yaxis_title="Traffic per Page",
-        yaxis2=dict(title="Percentage (%)", overlaying="y", side="right", range=[-50, 50]),
-        template="plotly_dark",
-        hovermode="x unified",
-        legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
-        margin=dict(l=40, r=40, t=120, b=100),  # Updated margin
-        height=800  # Make the chart taller
-    )
+            # Add zero line for clarity on the right y-axis
+            fig.add_shape(type="line",
+                        x0=df[date_col].min(), x1=df[date_col].max(),
+                        y0=0, y1=0,
+                        yref="y2",
+                        line=dict(color="gray", width=1, dash="dash"))
 
-    # Make tooltips bigger and percentage changes displayed correctly
-    fig.update_traces(hovertemplate='%{y:.2f}%')
-
-    # Add scroll and zoom functionality
-    fig.update_xaxes(rangeslider_visible=True)
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.header("Ranking State Report")
-
-    def generate_ranking_report(df):
-        # Identify Positive and Negative Ranking States based on Traffic per Page change
-        df['Ranking State'] = np.where(df[f"Lagged Traffic per Page {window_size}MA"].diff() > 0, 'Positive', 'Negative')
-        ranking_state_changes = df[df['Ranking State'] != df['Ranking State'].shift(1)]
-
-        ranking_state_report = []
-        if not ranking_state_changes.empty:
-            for i in range(len(ranking_state_changes) - 1):
-                state = ranking_state_changes.iloc[i]['Ranking State']
-                start_date = ranking_state_changes.iloc[i][date_col]
-                end_date = ranking_state_changes.iloc[i + 1][date_col] - timedelta(days=1)
-                avg_tpp_start = ranking_state_changes.iloc[i][f"Lagged Traffic per Page {window_size}MA"]
-                avg_tpp_end = ranking_state_changes.iloc[i + 1][f"Lagged Traffic per Page {window_size}MA"]
-
-                # Calculate page change and traffic change details
-                page_change_total = (ranking_state_changes.iloc[i + 1][page_col] - ranking_state_changes.iloc[i][page_col]) / ranking_state_changes.iloc[i][page_col] * 100
-                traffic_change_pct = ranking_state_changes.iloc[i + 1]['Traffic Change Rate']
-
-                # Ensure ranking state is based on Traffic per Page change
-                state = 'Positive' if avg_tpp_end > avg_tpp_start else 'Negative'
-
-                ranking_state_report.append(
-                    f"From {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}, the site was in a **{state}** ranking state. "
-                    f"The average traffic per page {'**increased**' if state == 'Positive' else '**decreased**'} from **{avg_tpp_start:.2f}** to **{avg_tpp_end:.2f}**. "
-                    f"Pages {'**increased**' if page_change_total > 0 else '**decreased**'} by **{page_change_total:.2f}%** "
-                    f"and traffic {'**increased**' if traffic_change_pct > 0 else '**decreased**'} by **{traffic_change_pct:.2f}%** compared to the previous period."
-                )
-
-            # Add the final state that runs until the end date
-            final_state = 'Positive' if df.iloc[-1][f"Lagged Traffic per Page {window_size}MA"] > df.iloc[-2][f"Lagged Traffic per Page {window_size}MA"] else 'Negative'
-            final_start_date = ranking_state_changes.iloc[-1][date_col]
-            final_end_date = df[date_col].max()
-            final_avg_tpp_start = ranking_state_changes.iloc[-1][f"Lagged Traffic per Page {window_size}MA"]
-            final_avg_tpp_end = df.iloc[-1][f"Lagged Traffic per Page {window_size}MA"]
-
-            # Calculate final period page change and traffic change
-            final_page_change_total = (df.iloc[-1][page_col] - ranking_state_changes.iloc[-1][page_col]) / ranking_state_changes.iloc[-1][page_col] * 100
-            final_traffic_change_pct = df.iloc[-1]['Traffic Change Rate']
-
-            ranking_state_report.append(
-                f"From {final_start_date.strftime('%Y-%m-%d')} to {final_end_date.strftime('%Y-%m-%d')}, the site was in a **{final_state}** ranking state. "
-                f"The average traffic per page {'**increased**' if final_state == 'Positive' else '**decreased**'} from **{final_avg_tpp_start:.2f}** to **{final_avg_tpp_end:.2f}**. "
-                f"Pages {'**increased**' if final_page_change_total > 0 else '**decreased**'} by **{final_page_change_total:.2f}%** "
-                f"and traffic {'**increased**' if final_traffic_change_pct > 0 else '**decreased**'} by **{final_traffic_change_pct:.2f}%** compared to the previous period."
+            # Layout updates for a clear and appealing look
+            fig.update_layout(
+                title=f"{date_frame.capitalize()} Ranking State Visualization",
+                xaxis_title="Date",
+                yaxis_title="Traffic per Page",
+                yaxis2=dict(title="Percentage (%)", overlaying="y", side="right", range=[-50, 50]),
+                template="plotly_dark",
+                hovermode="x unified",
+                legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
+                margin=dict(l=40, r=40, t=120, b=100),  # Updated margin
+                height=800  # Make the chart taller
             )
 
-        return df, ranking_state_report
+            # Make tooltips bigger and percentage changes displayed correctly
+            fig.update_traces(hovertemplate='%{y:.2f}%')
 
-    df, ranking_state_report = generate_ranking_report(df.copy())
+            # Add scroll and zoom functionality
+            fig.update_xaxes(rangeslider_visible=True)
 
-    if ranking_state_report:
-        for report in ranking_state_report:
-            st.write(report)
-else:
-    st.write("Please add Date, Pages, and Traffic fields to begin the analysis.")
+            st.plotly_chart(fig, use_container_width=True)
+
+            st.header("Ranking State Report")
+
+            def generate_ranking_report(df):
+                # Identify Positive and Negative Ranking States based on Traffic per Page change
+                df['Ranking State'] = np.where(df[f"Lagged Traffic per Page {window_size}MA"].diff() > 0, 'Positive', 'Negative')
+                ranking_state_changes = df[df['Ranking State'] != df['Ranking State'].shift(1)]
+
+                ranking_state_report = []
+                if not ranking_state_changes.empty:
+                    for i in range(len(ranking_state_changes) - 1):
+                        state = ranking_state_changes.iloc[i]['Ranking State']
+                        start_date = ranking_state_changes.iloc[i][date_col]
+                        end_date = ranking_state_changes.iloc[i + 1][date_col] - timedelta(days=1)
+                        avg_tpp_start = ranking_state_changes.iloc[i][f"Lagged Traffic per Page {window_size}MA"]
+                        avg_tpp_end = ranking_state_changes.iloc[i + 1][f"Lagged Traffic per Page {window_size}MA"]
+
+                        # Calculate page change and traffic change details
+                        page_change_total = (ranking_state_changes.iloc[i + 1][page_col] - ranking_state_changes.iloc[i][page_col]) / ranking_state_changes.iloc[i][page_col] * 100
+                        traffic_change_pct = ranking_state_changes.iloc[i + 1]['Traffic Change Rate']
+
+                        # Ensure ranking state is based on Traffic per Page change
+                        state = 'Positive' if avg_tpp_end > avg_tpp_start else 'Negative'
+
+                        ranking_state_report.append(
+                            f"From {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}, the site was in a **{state}** ranking state. "
+                            f"The average traffic per page {'**increased**' if state == 'Positive' else '**decreased**'} from **{avg_tpp_start:.2f}** to **{avg_tpp_end:.2f}**. "
+                            f"Pages {'**increased**' if page_change_total > 0 else '**decreased**'} by **{page_change_total:.2f}%** "
+                            f"and traffic {'**increased**' if traffic_change_pct > 0 else '**decreased**'} by **{traffic_change_pct:.2f}%** compared to the previous period."
+                        )
+
+                    # Add the final state that runs until the end date
+                    final_state = 'Positive' if df.iloc[-1][f"Lagged Traffic per Page {window_size}MA"] > df.iloc[-2][f"Lagged Traffic per Page {window_size}MA"] else 'Negative'
+                    final_start_date = ranking_state_changes.iloc[-1][date_col]
+                    final_end_date = df[date_col].max()
+                    final_avg_tpp_start = ranking_state_changes.iloc[-1][f"Lagged Traffic per Page {window_size}MA"]
+                    final_avg_tpp_end = df.iloc[-1][f"Lagged Traffic per Page {window_size}MA"]
+
+                    # Calculate final period page change and traffic change
+                    final_page_change_total = (df.iloc[-1][page_col] - ranking_state_changes.iloc[-1][page_col]) / ranking_state_changes.iloc[-1][page_col] * 100
+                    final_traffic_change_pct = df.iloc[-1]['Traffic Change Rate']
+
+                    ranking_state_report.append(
+                        f"From {final_start_date.strftime('%Y-%m-%d')} to {final_end_date.strftime('%Y-%m-%d')}, the site was in a **{final_state}** ranking state. "
+                        f"The average traffic per page {'**increased**' if final_state == 'Positive' else '**decreased**'} from **{final_avg_tpp_start:.2f}** to **{final_avg_tpp_end:.2f}**. "
+                        f"Pages {'**increased**' if final_page_change_total > 0 else '**decreased**'} by **{final_page_change_total:.2f}%** "
+                        f"and traffic {'**increased**' if final_traffic_change_pct > 0 else '**decreased**'} by **{final_traffic_change_pct:.2f}%** compared to the previous period."
+                    )
+
+                return df, ranking_state_report
+
+            df, ranking_state_report = generate_ranking_report(df.copy())
+
+            if ranking_state_report:
+                for report in ranking_state_report:
+                    st.write(report)
+    else:
+        st.write("Please add Date, Pages, and Traffic fields to begin the analysis.")
