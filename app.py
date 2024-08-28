@@ -94,12 +94,12 @@ if uploaded_file is not None:
         stable_growth_tpp = df_ma[stable_growth_mask][f"Lagged Traffic per Page {window_size}MA"].mean()
         rapid_growth_tpp = df_ma[rapid_growth_mask][f"Lagged Traffic per Page {window_size}MA"].mean()
 
-        # Calculate pages per period
-        stable_pages_min = (stable_min / 100) * df[page_col].mean()
-        stable_pages_max = (stable_max / 100) * df[page_col].mean()
+        # Corrected calculation of pages per period
+        stable_pages_min = df_ma[stable_growth_mask][page_col].min() if not df_ma[stable_growth_mask].empty else 0
+        stable_pages_max = df_ma[stable_growth_mask][page_col].max() if not df_ma[stable_growth_mask].empty else 0
         pages_per_period_stable = f"{stable_pages_min:.2f} to {stable_pages_max:.2f} pages per {date_frame}"
 
-        rapid_pages_min = rapid_growth_threshold / 100 * df[page_col].mean()
+        rapid_pages_min = df_ma[rapid_growth_mask][page_col].min() if not df_ma[rapid_growth_mask].empty else 0
         pages_per_period_rapid = f"more than {rapid_pages_min:.2f} pages per {date_frame}"
 
         return correlation_ma, stable_growth_traffic_change, rapid_growth_traffic_change, rapid_growth_traffic_std, df_ma, stable_min, stable_max, rapid_growth_threshold, stable_growth_tpp, rapid_growth_tpp, pages_per_period_stable, pages_per_period_rapid
