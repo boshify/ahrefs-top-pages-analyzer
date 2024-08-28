@@ -4,7 +4,7 @@ import numpy as np
 import plotly.graph_objs as go
 from datetime import timedelta
 
-st.title('Growth Rate Analyzer with Ranking State Visualization')
+st.title('Growth Rate Analyzer with Enhanced Ranking State Reports')
 
 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
@@ -112,7 +112,24 @@ if uploaded_file is not None:
                 end_date = ranking_state_changes.iloc[i + 1][date_col] - timedelta(days=1)
                 avg_tpp_start = ranking_state_changes.iloc[i][f"Lagged Traffic per Page {window_size}MA"]
                 avg_tpp_end = ranking_state_changes.iloc[i + 1][f"Lagged Traffic per Page {window_size}MA"]
-                ranking_state_report.append(f"From {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}, the site was in a {state} ranking state. The average traffic per page {'increased' if state == 'Positive' else 'decreased'} from {avg_tpp_start:.2f} to {avg_tpp_end:.2f}.")
+
+                # Calculate page growth and traffic change details
+                pages_start = ranking_state_changes.iloc[i][page_col]
+                pages_end = ranking_state_changes.iloc[i + 1][page_col]
+                page_growth = pages_end - pages_start
+                page_growth_pct = (page_growth / pages_start * 100) if pages_start != 0 else 0
+
+                traffic_start = ranking_state_changes.iloc[i][traffic_col]
+                traffic_end = ranking_state_changes.iloc[i + 1][traffic_col]
+                traffic_change = traffic_end - traffic_start
+                traffic_change_pct = (traffic_change / traffic_start * 100) if traffic_start != 0 else 0
+
+                ranking_state_report.append(
+                    f"From {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}, the site was in a {state} ranking state. "
+                    f"The average traffic per page {'increased' if state == 'Positive' else 'decreased'} from {avg_tpp_start:.2f} to {avg_tpp_end:.2f}. "
+                    f"The site was in a {'growth' if page_growth > 0 else 'decline'} state, pages {'increased' if page_growth > 0 else 'decreased'} by {page_growth} ({page_growth_pct:.2f}%) "
+                    f"compared to the previous period. This resulted in a traffic {'increase' if traffic_change > 0 else 'decrease'} of {traffic_change} ({traffic_change_pct:.2f}%)."
+                )
 
             # Add the final state that runs until the end date
             final_state = ranking_state_changes.iloc[-1]['Ranking State']
@@ -120,7 +137,24 @@ if uploaded_file is not None:
             final_end_date = df_ma[date_col].max()
             final_avg_tpp_start = ranking_state_changes.iloc[-1][f"Lagged Traffic per Page {window_size}MA"]
             final_avg_tpp_end = df_ma.iloc[-1][f"Lagged Traffic per Page {window_size}MA"]
-            ranking_state_report.append(f"From {final_start_date.strftime('%Y-%m-%d')} to {final_end_date.strftime('%Y-%m-%d')}, the site was in a {final_state} ranking state. The average traffic per page {'increased' if final_state == 'Positive' else 'decreased'} from {final_avg_tpp_start:.2f} to {final_avg_tpp_end:.2f}.")
+
+            # Calculate final period page growth and traffic change
+            final_pages_start = ranking_state_changes.iloc[-1][page_col]
+            final_pages_end = df_ma.iloc[-1][page_col]
+            final_page_growth = final_pages_end - final_pages_start
+            final_page_growth_pct = (final_page_growth / final_pages_start * 100) if final_pages_start != 0 else 0
+
+            final_traffic_start = ranking_state_changes.iloc[-1][traffic_col]
+            final_traffic_end = df_ma.iloc[-1][traffic_col]
+            final_traffic_change = final_traffic_end - final_traffic_start
+            final_traffic_change_pct = (final_traffic_change / final_traffic_start * 100) if final_traffic_start != 0 else 0
+
+            ranking_state_report.append(
+                f"From {final_start_date.strftime('%Y-%m-%d')} to {final_end_date.strftime('%Y-%m-%d')}, the site was in a {final_state} ranking state. "
+                f"The average traffic per page {'increased' if final_state == 'Positive' else 'decreased'} from {final_avg_tpp_start:.2f} to {final_avg_tpp_end:.2f}. "
+                f"The site was in a {'growth' if final_page_growth > 0 else 'decline'} state, pages {'increased' if final_page_growth > 0 else 'decreased'} by {final_page_growth} ({final_page_growth_pct:.2f}%) "
+                f"compared to the previous period. This resulted in a traffic {'increase' if final_traffic_change > 0 else 'decrease'} of {final_traffic_change} ({final_traffic_change_pct:.2f}%)."
+            )
 
         return correlation_ma, stable_growth_traffic_change, rapid_growth_traffic_change, rapid_growth_traffic_std, df_ma, stable_min, stable_max, rapid_growth_threshold, stable_growth_tpp, rapid_growth_tpp, ranking_state_report
 
@@ -174,61 +208,3 @@ if uploaded_file is not None:
         fig.add_trace(go.Scatter(
             x=df_ma[date_col],
             y=df_ma[f"Page Growth {window_size}MA"],
-            mode='lines',
-            name='Page Growth Rate (%)',
-            line=dict(color='blue', width=2)
-        ))
-
-        # Lagged and Adjusted Traffic Change Rate Line
-        fig.add_trace(go.Scatter(
-            x=df_ma[date_col],
-            y=df_ma[f"Lagged Traffic Change {window_size}MA"],
-            mode='lines',
-            name='Lagged Traffic Change Rate (%)',
-            line=dict(color='red', width=2)
-        ))
-
-        # Traffic per Page Line
-        fig.add_trace(go.Scatter(
-            x=df_ma[date_col],
-            y=df_ma[f"Lagged Traffic per Page {window_size}MA"],
-            mode='lines',
-            name='Lagged Traffic per Page',
-            line=dict(color='green', width=2, dash='dash')
-        ))
-
-        # Add ranking state indicators
-        for idx, row in df_ma.iterrows():
-            if row['Ranking State'] == 'Positive':
-                fig.add_vrect(
-                    x0=row[date_col] - timedelta(days=1),
-                    x1=row[date_col] + timedelta(days=1),
-                    fillcolor="green", opacity=0.3, line_width=0
-                )
-            else:
-                fig.add_vrect(
-                    x0=row[date_col] - timedelta(days=1),
-                    x1=row[date_col] + timedelta(days=1),
-                    fillcolor="red", opacity=0.3, line_width=0
-                )
-
-        # Add zero line for clarity
-        fig.add_shape(type="line",
-                      x0=df_ma[date_col].min(), x1=df_ma[date_col].max(),
-                      y0=0, y1=0,
-                      line=dict(color="gray", width=1, dash="dash"))
-
-        # Layout updates for a "cool and sexy" look
-        fig.update_layout(
-            title=f"{window_size}-Period Moving Average with {lag_period}-Period Lag",
-            xaxis_title="Date",
-            yaxis_title="Percentage (%)",
-            template="plotly_dark",
-            hovermode="x unified",
-            legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
-            margin=dict(l=40, r=40, t=40, b=40)
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.error("Analysis could not be completed due to insufficient data or a calculation error.")
