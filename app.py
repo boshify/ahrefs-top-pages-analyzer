@@ -117,10 +117,13 @@ if uploaded_file is not None:
                 page_growth_pct = ranking_state_changes.iloc[i + 1][f"Page Growth {window_size}MA"]
                 traffic_change_pct = ranking_state_changes.iloc[i + 1][f"Lagged Traffic Change {window_size}MA"]
 
-                # Ensure ranking state is based on Traffic per Page change
-                state = 'Positive' if avg_tpp_end > avg_tpp_start else 'Negative'
-
-                growth_state = "stable" if stable_min <= page_growth_pct <= stable_max else "rapid"
+                # Determine growth state based on calculated thresholds
+                if stable_min <= page_growth_pct <= stable_max:
+                    growth_state = "stable"
+                elif page_growth_pct > rapid_growth_threshold:
+                    growth_state = "rapid"
+                else:
+                    growth_state = "stable"
 
                 ranking_state_report.append(
                     f"From {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}, the site was in a {state} ranking state. "
