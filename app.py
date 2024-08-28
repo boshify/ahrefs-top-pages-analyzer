@@ -53,7 +53,7 @@ if uploaded_file is not None:
     st.write(df[[date_col, 'Pages Added', 'Page Growth Rate', 'Traffic Change Rate', 'Traffic per Page']].dropna().head())
 
     # Allow user to select the lag period
-    lag_period = st.slider("Select Lag Period (in periods)", min_value=0, max_value=12, value=0, step=1)
+    lag_period = st.slider("Select Lag Period (in periods)", min_value=0, max_value=12, value=1, step=1)
 
     if lag_period > 0:
         df['Lagged Traffic Change Rate'] = df['Traffic Change Rate'].shift(lag_period)
@@ -97,7 +97,7 @@ if uploaded_file is not None:
         stable_growth_tpp = df_ma[stable_growth_mask][f"Lagged Traffic per Page {window_size}MA"].mean()
         rapid_growth_tpp = df_ma[rapid_growth_mask][f"Lagged Traffic per Page {window_size}MA"].mean()
 
-        # Correct calculation of pages added per period
+        # Accurate calculation of pages added per period
         stable_pages_min = df_ma[stable_growth_mask]['Pages Added'].min() if not df_ma[stable_growth_mask].empty else 0
         stable_pages_max = df_ma[stable_growth_mask]['Pages Added'].max() if not df_ma[stable_growth_mask].empty else 0
         pages_per_period_stable = f"{stable_pages_min:.2f} to {stable_pages_max:.2f} pages added per {date_frame}"
