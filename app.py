@@ -117,13 +117,13 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
             fig.add_vrect(
                 x0=row[date_col] - timedelta(days=1),
                 x1=row[date_col] + timedelta(days=1),
-                fillcolor="green", opacity=0.2, line_width=0  # More transparent
+                fillcolor="green", opacity=0.4, line_width=0  # More visible
             )
         elif row.get('Ranking State') == 'Negative':
             fig.add_vrect(
                 x0=row[date_col] - timedelta(days=1),
                 x1=row[date_col] + timedelta(days=1),
-                fillcolor="red", opacity=0.2, line_width=0  # More transparent
+                fillcolor="red", opacity=0.4, line_width=0  # More visible
             )
 
     # Add zero line for clarity on the right y-axis
@@ -142,7 +142,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
         template="plotly_dark",
         hovermode="x unified",
         legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
-        margin=dict(l=40, r=40, t=40, b=80),  # Added padding
+        margin=dict(l=40, r=40, t=120, b=100),  # Updated margin
         height=800  # Make the chart taller
     )
 
