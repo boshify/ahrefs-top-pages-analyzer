@@ -141,8 +141,18 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
     fig.update_layout(
         title=f"{date_frame.capitalize()} Ranking State Visualization",
         xaxis_title="Date",
-        yaxis_title="Traffic per Page",
-        yaxis2=dict(title="Percentage (%)", overlaying="y", side="right", range=[-50, 50]),
+        yaxis=dict(
+            title="Traffic per Page",
+            side="left"
+        ),
+        yaxis2=dict(
+            title="Percentage (%)",
+            side="right",
+            overlaying="y",
+            showgrid=False,
+            range=[-50, 50],  # Limiting the range for better visibility
+            type='linear'  # You can change to 'log' for a logarithmic scale if needed
+        ),
         template="plotly_dark",
         hovermode="x unified",
         legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
