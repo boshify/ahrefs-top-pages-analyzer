@@ -39,7 +39,10 @@ if uploaded_file is not None:
     elif date_frame == 'monthly':
         df = df.resample('M', on=date_col).sum().reset_index().sort_values(by=date_col)
 
-    # Calculate growth rates including negative percentages
+    # Calculate the actual number of pages added per period
+    df['Pages Added'] = df[page_col].diff().fillna(0)
+
+    # Calculate growth rates
     df['Page Growth Rate'] = df[page_col].pct_change() * 100
     df['Traffic Change Rate'] = df[traffic_col].pct_change() * 100
 
@@ -47,7 +50,7 @@ if uploaded_file is not None:
     df['Traffic per Page'] = df[traffic_col] / df[page_col]
 
     st.write("Calculated Growth Rates:")
-    st.write(df[[date_col, 'Page Growth Rate', 'Traffic Change Rate', 'Traffic per Page']].dropna().head())
+    st.write(df[[date_col, 'Pages Added', 'Page Growth Rate', 'Traffic Change Rate', 'Traffic per Page']].dropna().head())
 
     # Allow user to select the lag period
     lag_period = st.slider("Select Lag Period (in periods)", min_value=0, max_value=12, value=0, step=1)
@@ -94,13 +97,13 @@ if uploaded_file is not None:
         stable_growth_tpp = df_ma[stable_growth_mask][f"Lagged Traffic per Page {window_size}MA"].mean()
         rapid_growth_tpp = df_ma[rapid_growth_mask][f"Lagged Traffic per Page {window_size}MA"].mean()
 
-        # Correct calculation of pages per period
-        stable_pages_min = df_ma[stable_growth_mask][page_col].min() if not df_ma[stable_growth_mask].empty else 0
-        stable_pages_max = df_ma[stable_growth_mask][page_col].max() if not df_ma[stable_growth_mask].empty else 0
-        pages_per_period_stable = f"{stable_pages_min - df_ma[page_col].min():.2f} to {stable_pages_max - df_ma[page_col].min():.2f} pages per {date_frame}"
+        # Correct calculation of pages added per period
+        stable_pages_min = df_ma[stable_growth_mask]['Pages Added'].min() if not df_ma[stable_growth_mask].empty else 0
+        stable_pages_max = df_ma[stable_growth_mask]['Pages Added'].max() if not df_ma[stable_growth_mask].empty else 0
+        pages_per_period_stable = f"{stable_pages_min:.2f} to {stable_pages_max:.2f} pages added per {date_frame}"
 
-        rapid_pages_min = df_ma[rapid_growth_mask][page_col].min() if not df_ma[rapid_growth_mask].empty else 0
-        pages_per_period_rapid = f"more than {rapid_pages_min - df_ma[page_col].min():.2f} pages per {date_frame}"
+        rapid_pages_min = df_ma[rapid_growth_mask]['Pages Added'].min() if not df_ma[rapid_growth_mask].empty else 0
+        pages_per_period_rapid = f"more than {rapid_pages_min:.2f} pages added per {date_frame}"
 
         return correlation_ma, stable_growth_traffic_change, rapid_growth_traffic_change, rapid_growth_traffic_std, df_ma, stable_min, stable_max, rapid_growth_threshold, stable_growth_tpp, rapid_growth_tpp, pages_per_period_stable, pages_per_period_rapid
 
