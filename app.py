@@ -205,8 +205,8 @@ if uploaded_file is not None:
     )
 
     # Apply Y-Axis Zoom
-    fig.update_yaxes(range=[df['Traffic per Page'].min() * y_zoom, df['Traffic per Page'].max() * y_zoom], secondary_y=False)
-    fig.update_yaxes(range=[df['Traffic Change Rate'].min() * y_zoom, df['Traffic Change Rate'].max() * y_zoom], secondary_y=True)
+    fig.update_yaxes(range=[df[f"Lagged Traffic per Page {window_size}MA"].min() * y_zoom, df[f"Lagged Traffic per Page {window_size}MA"].max() * y_zoom], secondary_y=False)
+    fig.update_yaxes(range=[df[f"Traffic Change {window_size}MA"].min() * y_zoom, df[f"Traffic Change {window_size}MA"].max() * y_zoom], secondary_y=True)
 
     # Add scroll and zoom functionality
     fig.update_xaxes(rangeslider_visible=True)
