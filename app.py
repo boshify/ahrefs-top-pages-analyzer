@@ -200,4 +200,29 @@ if uploaded_file is not None:
     # Add scroll and zoom functionality
     fig.update_xaxes(rangeslider_visible=True)
 
+    # JavaScript callback to handle mouse wheel for scaling y-axes
+    fig.update_layout(
+        yaxis=dict(
+            scaleanchor="y2",
+            scaleratio=1
+        ),
+        yaxis2=dict(
+            scaleanchor="y",
+            scaleratio=1
+        )
+    )
+
+    # Add custom JavaScript to handle the mouse wheel for scaling
+    fig.update_layout(
+        xaxis=dict(
+            rangeslider=dict(
+                visible=True
+            ),
+            type="date",
+            scaleanchor="y2",
+            scaleratio=1,
+            showgrid=True,
+        )
+    )
+
     st.plotly_chart(fig, use_container_width=True)
