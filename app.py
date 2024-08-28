@@ -58,16 +58,25 @@ if uploaded_file is not None:
     # Allow user to select the lag period
     lag_period = st.slider("Select Lag Period (in periods)", min_value=0, max_value=12, value=1, step=1)
 
+    # Allow user to select the moving average window size
+    max_window_size = len(df)
+    window_size = st.slider(f"Select Moving Average Window ({date_frame})", min_value=1, max_value=max_window_size, value=3, step=1)
+
+    # Apply the moving average to the relevant columns
+    df[f"Page Change {window_size}MA"] = df['Page Change Rate'].rolling(window=window_size).mean()
+    df[f"Traffic Change {window_size}MA"] = df['Traffic Change Rate'].rolling(window=window_size).mean()
+    df[f"Traffic per Page {window_size}MA"] = df['Traffic per Page'].rolling(window=window_size).mean()
+
     if lag_period > 0:
-        df['Lagged Traffic per Page'] = df['Traffic per Page'].shift(lag_period)
+        df[f"Lagged Traffic per Page {window_size}MA"] = df[f"Traffic per Page {window_size}MA"].shift(lag_period)
     else:
-        df['Lagged Traffic per Page'] = df['Traffic per Page']
+        df[f"Lagged Traffic per Page {window_size}MA"] = df[f"Traffic per Page {window_size}MA"]
 
     st.header("Ranking State Report")
     
     def generate_ranking_report(df):
         # Identify Positive and Negative Ranking States based on Traffic per Page change
-        df['Ranking State'] = np.where(df['Lagged Traffic per Page'].diff() > 0, 'Positive', 'Negative')
+        df['Ranking State'] = np.where(df[f"Lagged Traffic per Page {window_size}MA"].diff() > 0, 'Positive', 'Negative')
         ranking_state_changes = df[df['Ranking State'] != df['Ranking State'].shift(1)]
 
         ranking_state_report = []
@@ -76,8 +85,8 @@ if uploaded_file is not None:
                 state = ranking_state_changes.iloc[i]['Ranking State']
                 start_date = ranking_state_changes.iloc[i][date_col]
                 end_date = ranking_state_changes.iloc[i + 1][date_col] - timedelta(days=1)
-                avg_tpp_start = ranking_state_changes.iloc[i]['Lagged Traffic per Page']
-                avg_tpp_end = ranking_state_changes.iloc[i + 1]['Lagged Traffic per Page']
+                avg_tpp_start = ranking_state_changes.iloc[i][f"Lagged Traffic per Page {window_size}MA"]
+                avg_tpp_end = ranking_state_changes.iloc[i + 1][f"Lagged Traffic per Page {window_size}MA"]
 
                 # Calculate page change and traffic change details
                 page_change_total = (ranking_state_changes.iloc[i + 1][page_col] - ranking_state_changes.iloc[i][page_col]) / ranking_state_changes.iloc[i][page_col] * 100
@@ -94,11 +103,11 @@ if uploaded_file is not None:
                 )
 
             # Add the final state that runs until the end date
-            final_state = 'Positive' if df.iloc[-1]['Lagged Traffic per Page'] > df.iloc[-2]['Lagged Traffic per Page'] else 'Negative'
+            final_state = 'Positive' if df.iloc[-1][f"Lagged Traffic per Page {window_size}MA"] > df.iloc[-2][f"Lagged Traffic per Page {window_size}MA"] else 'Negative'
             final_start_date = ranking_state_changes.iloc[-1][date_col]
             final_end_date = df[date_col].max()
-            final_avg_tpp_start = ranking_state_changes.iloc[-1]['Lagged Traffic per Page']
-            final_avg_tpp_end = df.iloc[-1]['Lagged Traffic per Page']
+            final_avg_tpp_start = ranking_state_changes.iloc[-1][f"Lagged Traffic per Page {window_size}MA"]
+            final_avg_tpp_end = df.iloc[-1][f"Lagged Traffic per Page {window_size}MA"]
 
             # Calculate final period page change and traffic change
             final_page_change_total = (df.iloc[-1][page_col] - ranking_state_changes.iloc[-1][page_col]) / ranking_state_changes.iloc[-1][page_col] * 100
@@ -127,7 +136,7 @@ if uploaded_file is not None:
     # Page Growth Rate Line
     fig.add_trace(go.Scatter(
         x=df[date_col],
-        y=df['Page Change Rate'],
+        y=df[f"Page Change {window_size}MA"],
         mode='lines',
         name='Page Change Rate (%)',
         line=dict(color='blue', width=2)
@@ -136,7 +145,7 @@ if uploaded_file is not None:
     # Lagged Traffic Change Rate Line
     fig.add_trace(go.Scatter(
         x=df[date_col],
-        y=df['Traffic Change Rate'],
+        y=df[f"Traffic Change {window_size}MA"],
         mode='lines',
         name='Traffic Change Rate (%)',
         line=dict(color='red', width=2)
@@ -145,7 +154,7 @@ if uploaded_file is not None:
     # Traffic per Page Line
     fig.add_trace(go.Scatter(
         x=df[date_col],
-        y=df['Lagged Traffic per Page'],
+        y=df[f"Lagged Traffic per Page {window_size}MA"],
         mode='lines',
         name='Traffic per Page',
         line=dict(color='green', width=2, dash='dash')
