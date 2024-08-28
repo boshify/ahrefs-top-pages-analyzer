@@ -38,6 +38,9 @@ if uploaded_file is not None:
         df = df.resample('W-Mon', on=date_col).sum().reset_index().sort_values(by=date_col)
     elif date_frame == 'monthly':
         df = df.resample('M', on=date_col).sum().reset_index().sort_values(by=date_col)
+    # If daily, no resampling needed, just make sure it's sorted
+    else:
+        df = df.sort_values(by=date_col)
 
     # Calculate the actual number of pages added per period
     df['Pages Added'] = df[page_col].diff().fillna(0)
@@ -98,12 +101,19 @@ if uploaded_file is not None:
         rapid_growth_tpp = df_ma[rapid_growth_mask][f"Lagged Traffic per Page {window_size}MA"].mean()
 
         # Accurate calculation of pages added per period
-        stable_pages_min = df_ma[stable_growth_mask]['Pages Added'].min() if not df_ma[stable_growth_mask].empty else 0
-        stable_pages_max = df_ma[stable_growth_mask]['Pages Added'].max() if not df_ma[stable_growth_mask].empty else 0
-        pages_per_period_stable = f"{stable_pages_min:.2f} to {stable_pages_max:.2f} pages added per {date_frame}"
+        if date_frame == 'daily':
+            days_in_period = 1
+        elif date_frame == 'weekly':
+            days_in_period = 7
+        else:  # monthly
+            days_in_period = 30  # Approximation, could vary
 
-        rapid_pages_min = df_ma[rapid_growth_mask]['Pages Added'].min() if not df_ma[rapid_growth_mask].empty else 0
-        pages_per_period_rapid = f"more than {rapid_pages_min:.2f} pages added per {date_frame}"
+        stable_pages_min = (df_ma[stable_growth_mask]['Pages Added'].min() / days_in_period).round(2) if not df_ma[stable_growth_mask].empty else 0
+        stable_pages_max = (df_ma[stable_growth_mask]['Pages Added'].max() / days_in_period).round(2) if not df_ma[stable_growth_mask].empty else 0
+        pages_per_period_stable = f"{stable_pages_min} to {stable_pages_max} pages added per {date_frame}"
+
+        rapid_pages_min = (df_ma[rapid_growth_mask]['Pages Added'].min() / days_in_period).round(2) if not df_ma[rapid_growth_mask].empty else 0
+        pages_per_period_rapid = f"more than {rapid_pages_min} pages added per {date_frame}"
 
         return correlation_ma, stable_growth_traffic_change, rapid_growth_traffic_change, rapid_growth_traffic_std, df_ma, stable_min, stable_max, rapid_growth_threshold, stable_growth_tpp, rapid_growth_tpp, pages_per_period_stable, pages_per_period_rapid
 
