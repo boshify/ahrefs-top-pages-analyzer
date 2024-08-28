@@ -44,7 +44,7 @@ if uploaded_file is not None:
 
     # Calculate total pages added or removed per period
     df['Pages Added'] = df[page_col].diff().fillna(0)
-    df['Page Change Rate'] = df['Pages Added'] / (df[page_col].shift(1) + df['Pages Added']) * 100
+    df['Page Change Rate'] = df['Pages Added'] / df[page_col].shift(1) * 100
 
     # Calculate Traffic per Page directly from the Traffic and Pages columns
     df['Traffic per Page'] = df[traffic_col] / df[page_col]
@@ -189,7 +189,7 @@ if uploaded_file is not None:
         title=f"{date_frame.capitalize()} Ranking State Visualization",
         xaxis_title="Date",
         yaxis_title="Traffic per Page",
-        yaxis2=dict(title="Percentage (%)", overlaying="y", side="right", range=[-50, 50]),
+        yaxis2=dict(title="Percentage (%)", overlaying="y", side="right"),
         template="plotly_dark",
         hovermode="x unified",
         legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
