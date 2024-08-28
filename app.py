@@ -42,12 +42,16 @@ if uploaded_file is not None:
     else:
         df = df.sort_values(by=date_col)
 
+    # Convert columns to numeric, forcing errors to NaN and then filling them with 0
+    df[page_col] = pd.to_numeric(df[page_col], errors='coerce').fillna(0)
+    df[traffic_col] = pd.to_numeric(df[traffic_col], errors='coerce').fillna(0)
+
     # Calculate total pages added or removed per period
     df['Pages Added'] = df[page_col].diff().fillna(0)
-    df['Page Change Rate'] = df['Pages Added'] / df[page_col].shift(1) * 100
+    df['Page Change Rate'] = (df['Pages Added'] / df[page_col].shift(1).replace({0: np.nan})) * 100
 
     # Calculate Traffic per Page directly from the Traffic and Pages columns
-    df['Traffic per Page'] = df[traffic_col] / df[page_col]
+    df['Traffic per Page'] = df[traffic_col] / df[page_col].replace({0: np.nan})
 
     # Calculate Traffic Change Rate compared to the previous period
     df['Traffic Change Rate'] = df[traffic_col].pct_change() * 100
