@@ -120,19 +120,11 @@ if uploaded_file is not None:
                 # Ensure ranking state is based on Traffic per Page change
                 state = 'Positive' if avg_tpp_end > avg_tpp_start else 'Negative'
 
-                # Determine growth state based on calculated thresholds
-                if stable_min <= page_growth_pct <= stable_max:
-                    growth_state = "stable"
-                elif page_growth_pct > rapid_growth_threshold:
-                    growth_state = "rapid"
-                else:
-                    growth_state = "stable"
-
                 ranking_state_report.append(
                     f"From {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}, the site was in a {state} ranking state. "
                     f"The average traffic per page {'increased' if state == 'Positive' else 'decreased'} from {avg_tpp_start:.2f} to {avg_tpp_end:.2f}. "
-                    f"The site was in a {growth_state} growth state, with pages changing by {page_growth_pct:.2f}% "
-                    f"and traffic changing by {traffic_change_pct:.2f}% compared to the previous period."
+                    f"Pages {'increased' if page_growth_pct > 0 else 'decreased'} by {page_growth_pct:.2f}% "
+                    f"and traffic {'increased' if traffic_change_pct > 0 else 'decreased'} by {traffic_change_pct:.2f}% compared to the previous period."
                 )
 
             # Add the final state that runs until the end date
@@ -146,13 +138,11 @@ if uploaded_file is not None:
             final_page_growth_pct = df_ma.iloc[-1][f"Page Growth {window_size}MA"]
             final_traffic_change_pct = df_ma.iloc[-1][f"Lagged Traffic Change {window_size}MA"]
 
-            final_growth_state = "stable" if stable_min <= final_page_growth_pct <= stable_max else "rapid"
-
             ranking_state_report.append(
                 f"From {final_start_date.strftime('%Y-%m-%d')} to {final_end_date.strftime('%Y-%m-%d')}, the site was in a {final_state} ranking state. "
                 f"The average traffic per page {'increased' if final_state == 'Positive' else 'decreased'} from {final_avg_tpp_start:.2f} to {final_avg_tpp_end:.2f}. "
-                f"The site was in a {final_growth_state} growth state, with pages changing by {final_page_growth_pct:.2f}% "
-                f"and traffic changing by {final_traffic_change_pct:.2f}% compared to the previous period."
+                f"Pages {'increased' if final_page_growth_pct > 0 else 'decreased'} by {final_page_growth_pct:.2f}% "
+                f"and traffic {'increased' if final_traffic_change_pct > 0 else 'decreased'} by {final_traffic_change_pct:.2f}% compared to the previous period."
             )
 
         return correlation_ma, stable_growth_traffic_change, rapid_growth_traffic_change, rapid_growth_traffic_std, df_ma, stable_min, stable_max, rapid_growth_threshold, stable_growth_tpp, rapid_growth_tpp, ranking_state_report
