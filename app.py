@@ -115,14 +115,14 @@ if uploaded_file is not None:
             st.write(f"**Traffic per Page during Rapid Growth**: The average Traffic per Page during rapid growth periods is {rapid_growth_tpp:.2f}. This reflects how traffic efficiency changes during periods of rapid page growth.")
 
         # Summary of findings
-        st.write("### Summary of Findings")
         summary_tpp_change = stable_growth_tpp - rapid_growth_tpp if stable_growth_tpp is not None and rapid_growth_tpp is not None else 'N/A'
         tpp_summary = f"with a change in Traffic per Page of {summary_tpp_change:.2f} from stable to rapid growth periods" if isinstance(summary_tpp_change, float) else ""
+        st.write("### Summary of Findings")
         st.write(f"Based on these findings, it appears the twiddler algorithm rewards growth stability in the range of {stable_min:.2f}% to {stable_max:.2f}% with positive traffic changes after a lag of {lag_period} periods. However, if page growth exceeds {rapid_growth_threshold:.2f}%, it is likely to reduce traffic by an average of {abs(rapid_growth_traffic):.2f}%, with a volatility of {rapid_growth_std:.2f}%, after the same lag, {tpp_summary}.")
 
         st.write("### Visualization")
         
-        # Plotly visualization
+        # Plotly visualization with logarithmic scale
         fig = go.Figure()
 
         # Page Growth Rate Line
@@ -163,6 +163,7 @@ if uploaded_file is not None:
             title=f"{window_size}-Period Moving Average with {lag_period}-Period Lag",
             xaxis_title="Date",
             yaxis_title="Percentage (%)",
+            yaxis_type="log",  # Set y-axis to logarithmic scale
             template="plotly_dark",
             hovermode="x unified",
             legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
