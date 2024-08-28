@@ -24,6 +24,15 @@ if uploaded_file is not None:
     # Allow user to select the date frame
     date_frame = st.selectbox("Select Date Frame:", ['daily', 'weekly', 'monthly'])
 
+    # Date range selector
+    min_date = df[date_col].min()
+    max_date = df[date_col].max()
+    date_range = st.date_input("Select Date Range", [min_date, max_date], min_value=min_date, max_value=max_date)
+
+    # Filter data based on date range
+    start_date, end_date = date_range
+    df = df[(df[date_col] >= pd.to_datetime(start_date)) & (df[date_col] <= pd.to_datetime(end_date))]
+
     # Aggregate data based on the selected date frame
     if date_frame == 'weekly':
         df = df.resample('W-Mon', on=date_col).sum().reset_index().sort_values(by=date_col)
