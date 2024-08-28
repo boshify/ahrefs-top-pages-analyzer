@@ -100,7 +100,7 @@ if uploaded_file is not None:
                 state = 'Positive' if avg_tpp_end > avg_tpp_start else 'Negative'
 
                 ranking_state_report.append(
-                    f"From {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}, the site was in a **{state}** ranking state. "
+                    f"From {pd.to_datetime(start_date).strftime('%Y-%m-%d')} to {pd.to_datetime(end_date).strftime('%Y-%m-%d')}, the site was in a **{state}** ranking state. "
                     f"The average traffic per page {'**increased**' if state == 'Positive' else '**decreased**'} from **{avg_tpp_start:.2f}** to **{avg_tpp_end:.2f}**. "
                     f"Pages {'**increased**' if page_change_total > 0 else '**decreased**'} by **{page_change_total:.2f}%** "
                     f"and traffic {'**increased**' if traffic_change_pct > 0 else '**decreased**'} by **{traffic_change_pct:.2f}%** compared to the previous period."
@@ -118,7 +118,7 @@ if uploaded_file is not None:
             final_traffic_change_pct = df.iloc[-1]['Traffic Change Rate']
 
             ranking_state_report.append(
-                f"From {final_start_date.strftime('%Y-%m-%d')} to {final_end_date.strftime('%Y-%m-%d')}, the site was in a **{final_state}** ranking state. "
+                f"From {pd.to_datetime(final_start_date).strftime('%Y-%m-%d')} to {pd.to_datetime(final_end_date).strftime('%Y-%m-%d')}, the site was in a **{final_state}** ranking state. "
                 f"The average traffic per page {'**increased**' if final_state == 'Positive' else '**decreased**'} from **{final_avg_tpp_start:.2f}** to **{final_avg_tpp_end:.2f}**. "
                 f"Pages {'**increased**' if final_page_change_total > 0 else '**decreased**'} by **{final_page_change_total:.2f}%** "
                 f"and traffic {'**increased**' if final_traffic_change_pct > 0 else '**decreased**'} by **{final_traffic_change_pct:.2f}%** compared to the previous period."
