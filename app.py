@@ -117,13 +117,13 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
             fig.add_vrect(
                 x0=row[date_col] - timedelta(days=1),
                 x1=row[date_col] + timedelta(days=1),
-                fillcolor="green", opacity=0.5, line_width=4  # More transparent
+                fillcolor="green", opacity=0.3, line_width=0  # More transparent
             )
         elif row.get('Ranking State') == 'Negative':
             fig.add_vrect(
                 x0=row[date_col] - timedelta(days=1),
                 x1=row[date_col] + timedelta(days=1),
-                fillcolor="red", opacity=0.5, line_width=4  # More transparent
+                fillcolor="red", opacity=0.3, line_width=0  # More transparent
             )
 
     # Add zero line for clarity on the right y-axis
