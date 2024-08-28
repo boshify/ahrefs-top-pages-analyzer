@@ -42,16 +42,12 @@ if uploaded_file is not None:
     else:
         df = df.sort_values(by=date_col)
 
-    # Convert columns to numeric, forcing errors to NaN and then filling them with 0
-    df[page_col] = pd.to_numeric(df[page_col], errors='coerce').fillna(0)
-    df[traffic_col] = pd.to_numeric(df[traffic_col], errors='coerce').fillna(0)
-
     # Calculate total pages added or removed per period
     df['Pages Added'] = df[page_col].diff().fillna(0)
-    df['Page Change Rate'] = (df['Pages Added'] / df[page_col].shift(1).replace({0: np.nan})) * 100
+    df['Page Change Rate'] = df['Pages Added'] / df[page_col].shift(1) * 100
 
     # Calculate Traffic per Page directly from the Traffic and Pages columns
-    df['Traffic per Page'] = df[traffic_col] / df[page_col].replace({0: np.nan})
+    df['Traffic per Page'] = df[traffic_col] / df[page_col]
 
     # Calculate Traffic Change Rate compared to the previous period
     df['Traffic Change Rate'] = df[traffic_col].pct_change() * 100
@@ -100,7 +96,7 @@ if uploaded_file is not None:
                 state = 'Positive' if avg_tpp_end > avg_tpp_start else 'Negative'
 
                 ranking_state_report.append(
-                    f"From {pd.to_datetime(start_date).strftime('%Y-%m-%d')} to {pd.to_datetime(end_date).strftime('%Y-%m-%d')}, the site was in a **{state}** ranking state. "
+                    f"From {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}, the site was in a **{state}** ranking state. "
                     f"The average traffic per page {'**increased**' if state == 'Positive' else '**decreased**'} from **{avg_tpp_start:.2f}** to **{avg_tpp_end:.2f}**. "
                     f"Pages {'**increased**' if page_change_total > 0 else '**decreased**'} by **{page_change_total:.2f}%** "
                     f"and traffic {'**increased**' if traffic_change_pct > 0 else '**decreased**'} by **{traffic_change_pct:.2f}%** compared to the previous period."
@@ -118,7 +114,7 @@ if uploaded_file is not None:
             final_traffic_change_pct = df.iloc[-1]['Traffic Change Rate']
 
             ranking_state_report.append(
-                f"From {pd.to_datetime(final_start_date).strftime('%Y-%m-%d')} to {pd.to_datetime(final_end_date).strftime('%Y-%m-%d')}, the site was in a **{final_state}** ranking state. "
+                f"From {final_start_date.strftime('%Y-%m-%d')} to {final_end_date.strftime('%Y-%m-%d')}, the site was in a **{final_state}** ranking state. "
                 f"The average traffic per page {'**increased**' if final_state == 'Positive' else '**decreased**'} from **{final_avg_tpp_start:.2f}** to **{final_avg_tpp_end:.2f}**. "
                 f"Pages {'**increased**' if final_page_change_total > 0 else '**decreased**'} by **{final_page_change_total:.2f}%** "
                 f"and traffic {'**increased**' if final_traffic_change_pct > 0 else '**decreased**'} by **{final_traffic_change_pct:.2f}%** compared to the previous period."
@@ -134,9 +130,6 @@ if uploaded_file is not None:
 
     st.write("### Visualization")
     
-    # Y-axis zoom slider
-    y_zoom = st.slider('Y-Axis Zoom Level', min_value=0.5, max_value=2.0, value=1.0, step=0.1)
-
     # Plotly visualization
     fig = go.Figure()
 
@@ -196,17 +189,13 @@ if uploaded_file is not None:
         title=f"{date_frame.capitalize()} Ranking State Visualization",
         xaxis_title="Date",
         yaxis_title="Traffic per Page",
-        yaxis2=dict(title="Percentage (%)", overlaying="y", side="right"),
+        yaxis2=dict(title="Percentage (%)", overlaying="y", side="right", range=[-50, 50]),  # Adjusted zoom level
         template="plotly_dark",
         hovermode="x unified",
         legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
         margin=dict(l=40, r=40, t=40, b=40),
         height=600  # Make the chart bigger
     )
-
-    # Apply Y-Axis Zoom
-    fig.update_yaxes(range=[df[f"Lagged Traffic per Page {window_size}MA"].min() * y_zoom, df[f"Lagged Traffic per Page {window_size}MA"].max() * y_zoom], secondary_y=False)
-    fig.update_yaxes(range=[df[f"Traffic Change {window_size}MA"].min() * y_zoom, df[f"Traffic Change {window_size}MA"].max() * y_zoom], secondary_y=True)
 
     # Add scroll and zoom functionality
     fig.update_xaxes(rangeslider_visible=True)
