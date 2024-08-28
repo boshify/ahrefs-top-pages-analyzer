@@ -147,7 +147,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
         hovermode="x unified",
         legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
         margin=dict(l=20, r=20, t=120, b=100),  # Updated margin
-        height=1200  # Make the chart taller
+        height=1000  # Make the chart taller
     )
 
     # Make tooltips bigger and percentage changes displayed correctly
