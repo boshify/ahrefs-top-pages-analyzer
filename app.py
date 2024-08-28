@@ -194,7 +194,7 @@ if uploaded_file is not None:
         hovermode="x unified",
         legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
         margin=dict(l=40, r=40, t=40, b=40),
-        height=800  # Make the chart bigger
+        height=600  # Make the chart bigger
     )
 
     # Add scroll and zoom functionality
@@ -204,6 +204,7 @@ if uploaded_file is not None:
     y_min, y_max = df['Traffic per Page'].min(), df['Traffic per Page'].max()
     y2_min, y2_max = df['Page Change Rate'].min(), df['Page Change Rate'].max()
 
+    # Zoom In/Out Controls
     if st.button('Zoom In Y-Axis'):
         y_min, y_max = y_min * 0.9, y_max * 0.9
         y2_min, y2_max = y2_min * 0.9, y2_max * 0.9
