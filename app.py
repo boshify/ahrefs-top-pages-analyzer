@@ -111,9 +111,9 @@ if uploaded_file is not None:
                 f"and traffic {'**increased**' if final_traffic_change_pct > 0 else '**decreased**'} by **{final_traffic_change_pct:.2f}%** compared to the previous period."
             )
 
-        return ranking_state_report
+        return df, ranking_state_report
 
-    ranking_state_report = generate_ranking_report(df.copy())
+    df, ranking_state_report = generate_ranking_report(df.copy())
 
     if ranking_state_report:
         for report in ranking_state_report:
