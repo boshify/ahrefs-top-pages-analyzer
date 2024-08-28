@@ -81,8 +81,8 @@ with st.sidebar:
 # Now display the main content (visualization and ranking state report) in the main page
 if uploaded_file is not None and date_col and page_col and traffic_col:
     st.write("### Visualization")
-    
-    # Plotly visualization
+
+    # Plotly visualization for percentage changes
     fig = go.Figure()
 
     # Page Growth Rate Line (right y-axis)
@@ -105,31 +105,6 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
         yaxis="y2"
     ))
 
-    # Traffic per Page Line (left y-axis, solid line with increased thickness)
-    fig.add_trace(go.Scatter(
-        x=df[date_col],
-        y=df[f"Lagged Traffic per Page {window_size}MA"],
-        mode='lines',
-        name='Traffic per Page',
-        line=dict(color='green', width=4),  # Increase line thickness
-        hovertemplate='Traffic per Page: %{y:.2f}<extra></extra>'  # Format without the % symbol
-    ))
-
-    # Add ranking state indicators to match the ranking state report
-    for idx, row in df.iterrows():
-        if row['Ranking State'] == 'Positive':
-            fig.add_vrect(
-                x0=row[date_col] - timedelta(days=1),
-                x1=row[date_col] + timedelta(days=1),
-                fillcolor="green", opacity=0.2, line_width=0  # More visible
-            )
-        elif row['Ranking State'] == 'Negative':
-            fig.add_vrect(
-                x0=row[date_col] - timedelta(days=1),
-                x1=row[date_col] + timedelta(days=1),
-                fillcolor="red", opacity=0.2, line_width=0  # More visible
-            )
-
     # Add zero line for clarity on the right y-axis
     fig.add_shape(type="line",
                 x0=df[date_col].min(), x1=df[date_col].max(),
@@ -151,7 +126,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
             overlaying="y",
             showgrid=False,
             range=[-50, 50],  # Limiting the range for better visibility
-            type='log'  # Apply logarithmic scale to the percentage changes
+            type='linear'
         ),
         template="plotly_dark",
         hovermode="x unified",
@@ -165,6 +140,32 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
 
     # Add scroll and zoom functionality
     fig.update_xaxes(rangeslider_visible=True)
+
+    # Separate Traffic per Page visualization overlaid on the main chart
+    fig.add_trace(go.Scatter(
+        x=df[date_col],
+        y=df[f"Lagged Traffic per Page {window_size}MA"],
+        mode='lines',
+        name='Traffic per Page',
+        line=dict(color='green', width=4, dash='dash'),
+        yaxis="y",  # Aligns to the left y-axis
+        hovertemplate='Traffic per Page: %{y:.2f}<extra></extra>'  # Aligns to the left side for clarity
+    ))
+
+    # Add ranking state indicators to match the ranking state report
+    for idx, row in df.iterrows():
+        if row['Ranking State'] == 'Positive':
+            fig.add_vrect(
+                x0=row[date_col] - timedelta(days=1),
+                x1=row[date_col] + timedelta(days=1),
+                fillcolor="green", opacity=0.2, line_width=0  # More visible
+            )
+        elif row['Ranking State'] == 'Negative':
+            fig.add_vrect(
+                x0=row[date_col] - timedelta(days=1),
+                x1=row[date_col] + timedelta(days=1),
+                fillcolor="red", opacity=0.2, line_width=0  # More visible
+            )
 
     st.plotly_chart(fig, use_container_width=True)
 
