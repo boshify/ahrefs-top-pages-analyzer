@@ -85,30 +85,34 @@ if uploaded_file is not None:
         stable_growth_tpp = df_ma[stable_growth_mask][f"Lagged Traffic per Page {window_size}MA"].mean()
         rapid_growth_tpp = df_ma[rapid_growth_mask][f"Lagged Traffic per Page {window_size}MA"].mean()
 
-        return correlation_ma, stable_growth_traffic_change, rapid_growth_traffic_change, rapid_growth_traffic_std, df_ma, stable_min, stable_max, rapid_growth_threshold, stable_growth_tpp, rapid_growth_tpp
+        # Calculate pages per period
+        stable_pages_min = (stable_min / 100) * df[page_col].mean()
+        stable_pages_max = (stable_max / 100) * df[page_col].mean()
+        pages_per_period_stable = f"{stable_pages_min:.2f} to {stable_pages_max:.2f} pages per {date_frame}"
+
+        rapid_pages_min = rapid_growth_threshold / 100 * df[page_col].mean()
+        pages_per_period_rapid = f"more than {rapid_pages_min:.2f} pages per {date_frame}"
+
+        return correlation_ma, stable_growth_traffic_change, rapid_growth_traffic_change, rapid_growth_traffic_std, df_ma, stable_min, stable_max, rapid_growth_threshold, stable_growth_tpp, rapid_growth_tpp, pages_per_period_stable, pages_per_period_rapid
 
     # Allow user to select the moving average window size
     max_window_size = len(df)
     window_size = st.slider(f"Select Moving Average Window ({date_frame})", min_value=1, max_value=max_window_size, value=3, step=1)
 
-    correlation, stable_growth_traffic, rapid_growth_traffic, rapid_growth_std, df_ma, stable_min, stable_max, rapid_growth_threshold, stable_growth_tpp, rapid_growth_tpp = analyze_growth(df.copy(), window_size)
+    correlation, stable_growth_traffic, rapid_growth_traffic, rapid_growth_std, df_ma, stable_min, stable_max, rapid_growth_threshold, stable_growth_tpp, rapid_growth_tpp, pages_per_period_stable, pages_per_period_rapid = analyze_growth(df.copy(), window_size)
     
     if correlation is not None:
         st.subheader(f"{window_size}-Period Moving Average ({date_frame}):")
         st.write(f"Correlation (with {lag_period}-period lag): {correlation:.4f}")
 
-        # Calculate pages per period
-        pages_per_period_stable = (stable_max - stable_min) / 100 * df[page_col].mean() if stable_max is not None and stable_min is not None else 0
-        pages_per_period_rapid = rapid_growth_threshold / 100 * df[page_col].mean() if rapid_growth_threshold is not None else 0
-
         st.write("### Insights")
         if stable_growth_traffic is not None:
-            st.write(f"**Stable Growth (between {stable_min:.2f}% and {stable_max:.2f}% or {pages_per_period_stable:.2f} pages per {date_frame})**: During periods where page growth remains within this stable range, the average lagged traffic change rate is {stable_growth_traffic:.2f}%. This suggests that the algorithm rewards stable page growth, resulting in consistent {'increases' if stable_growth_traffic >= 0 else 'decreases'} in traffic after a lag of {lag_period} periods.")
+            st.write(f"**Stable Growth (between {stable_min:.2f}% and {stable_max:.2f}% or {pages_per_period_stable})**: During periods where page growth remains within this stable range, the average lagged traffic change rate is {stable_growth_traffic:.2f}%. This suggests that the algorithm rewards stable page growth, resulting in consistent {'increases' if stable_growth_traffic >= 0 else 'decreases'} in traffic after a lag of {lag_period} periods.")
 
         if rapid_growth_traffic is not None and not np.isnan(rapid_growth_traffic):
             delta_traffic = rapid_growth_traffic - stable_growth_traffic
             traffic_direction = "higher" if delta_traffic > 0 else "lower"
-            st.write(f"**Rapid Growth (above {rapid_growth_threshold:.2f}% or more than {pages_per_period_rapid:.2f} pages per {date_frame})**: When page growth exceeds this threshold, the average lagged traffic change rate is {rapid_growth_traffic:.2f}% ({abs(delta_traffic):.2f}% {traffic_direction} than stable). This indicates that rapid increases in page growth are associated with significant changes in traffic, potentially {'penalizing' if rapid_growth_traffic < 0 else 'rewarding'} sharp increases in page growth after a lag of {lag_period} periods.")
+            st.write(f"**Rapid Growth (above {rapid_growth_threshold:.2f}% or {pages_per_period_rapid})**: When page growth exceeds this threshold, the average lagged traffic change rate is {rapid_growth_traffic:.2f}% ({abs(delta_traffic):.2f}% {traffic_direction} than stable). This indicates that rapid increases in page growth are associated with significant changes in traffic, potentially {'penalizing' if rapid_growth_traffic < 0 else 'rewarding'} sharp increases in page growth after a lag of {lag_period} periods.")
 
         if rapid_growth_std is not None and not np.isnan(rapid_growth_std):
             st.write(f"**Volatility during Rapid Growth**: The standard deviation of the lagged traffic change rate during periods of rapid growth is {rapid_growth_std:.2f}%, indicating high volatility and suggesting that traffic responses are unpredictable during these times.")
@@ -123,7 +127,7 @@ if uploaded_file is not None:
         # Summary of findings
         st.write("### Summary of Findings")
         tpp_summary = f"with a change in Traffic per Page of {abs(tpp_change):.2f} ({abs(tpp_percentage_change):.2f}%) {'lower' if tpp_change > 0 else 'higher'} from stable to rapid growth periods" if stable_growth_tpp is not None and rapid_growth_tpp is not None else ""
-        st.write(f"Based on these findings, it appears the twiddler algorithm rewards growth stability in the range of {stable_min:.2f}% to {stable_max:.2f}% ({pages_per_period_stable:.2f} pages per {date_frame}) with positive traffic changes after a lag of {lag_period} periods. However, if page growth exceeds {rapid_growth_threshold:.2f}% ({pages_per_period_rapid:.2f} pages per {date_frame}), it is likely to reduce traffic by an average of {abs(rapid_growth_traffic):.2f}%, with a volatility of {rapid_growth_std:.2f}%, after the same lag, {tpp_summary}.")
+        st.write(f"Based on these findings, it appears the twiddler algorithm rewards growth stability in the range of {stable_min:.2f}% to {stable_max:.2f}% ({pages_per_period_stable}) with positive traffic changes after a lag of {lag_period} periods. However, if page growth exceeds {rapid_growth_threshold:.2f}% ({pages_per_period_rapid}), it is likely to reduce traffic by an average of {abs(rapid_growth_traffic):.2f}%, with a volatility of {rapid_growth_std:.2f}%, after the same lag, {tpp_summary}.")
 
         st.write("### Visualization")
         
