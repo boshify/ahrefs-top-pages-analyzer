@@ -100,7 +100,7 @@ if uploaded_file is not None:
         stable_growth_tpp = df_ma[stable_growth_mask][f"Lagged Traffic per Page {window_size}MA"].mean()
         rapid_growth_tpp = df_ma[rapid_growth_mask][f"Lagged Traffic per Page {window_size}MA"].mean()
 
-        # Identify Positive and Negative Ranking States
+        # Identify Positive and Negative Ranking States based on Traffic per Page change
         df_ma['Ranking State'] = np.where(df_ma[f"Lagged Traffic per Page {window_size}MA"].diff() > 0, 'Positive', 'Negative')
         ranking_state_changes = df_ma[df_ma['Ranking State'] != df_ma['Ranking State'].shift(1)]
 
@@ -117,6 +117,9 @@ if uploaded_file is not None:
                 page_growth_pct = ranking_state_changes.iloc[i + 1][f"Page Growth {window_size}MA"]
                 traffic_change_pct = ranking_state_changes.iloc[i + 1][f"Lagged Traffic Change {window_size}MA"]
 
+                # Ensure ranking state is based on Traffic per Page change
+                state = 'Positive' if avg_tpp_end > avg_tpp_start else 'Negative'
+
                 growth_state = "stable" if stable_min <= page_growth_pct <= stable_max else "rapid"
 
                 ranking_state_report.append(
@@ -127,7 +130,7 @@ if uploaded_file is not None:
                 )
 
             # Add the final state that runs until the end date
-            final_state = ranking_state_changes.iloc[-1]['Ranking State']
+            final_state = 'Positive' if df_ma.iloc[-1][f"Lagged Traffic per Page {window_size}MA"] > df_ma.iloc[-2][f"Lagged Traffic per Page {window_size}MA"] else 'Negative'
             final_start_date = ranking_state_changes.iloc[-1][date_col]
             final_end_date = df_ma[date_col].max()
             final_avg_tpp_start = ranking_state_changes.iloc[-1][f"Lagged Traffic per Page {window_size}MA"]
