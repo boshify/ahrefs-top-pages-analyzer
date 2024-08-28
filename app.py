@@ -111,7 +111,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
         y=df[f"Lagged Traffic per Page {window_size}MA"],
         mode='lines',
         name='Traffic per Page',
-        line=dict(color='green', width=4)  # Increase line thickness
+        line=dict(color='green', width=4),  # Increase line thickness
         hovertemplate='%{y:.2f}'  # This ensures it's shown as a number
     ))
 
