@@ -112,7 +112,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
         mode='lines',
         name='Traffic per Page',
         line=dict(color='green', width=4),  # Increase line thickness
-        hovertemplate='{y:.2f}'  # This ensures it's shown as a number
+        hovertemplate='Traffic per Page: %{y:.2f}<extra></extra>'  # Format without the % symbol
     ))
 
     # Add ranking state indicators to match the ranking state report
