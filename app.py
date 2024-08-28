@@ -37,6 +37,11 @@ if uploaded_file is not None:
     # Calculate Traffic per Page
     df['Traffic per Page'] = df[traffic_col] / df[page_col]
 
+    # Adjust values to avoid issues with log scale (replace zeros or negatives with a small positive number)
+    df['Page Growth Rate'] = df['Page Growth Rate'].replace(0, np.nan).fillna(1e-9)
+    df['Traffic Change Rate'] = df['Traffic Change Rate'].replace(0, np.nan).fillna(1e-9)
+    df['Traffic per Page'] = df['Traffic per Page'].replace(0, np.nan).fillna(1e-9)
+
     st.write("Calculated Growth Rates:")
     st.write(df[[date_col, 'Page Growth Rate', 'Traffic Change Rate', 'Traffic per Page']].dropna().head())
 
