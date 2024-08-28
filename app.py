@@ -208,3 +208,61 @@ if uploaded_file is not None:
         fig.add_trace(go.Scatter(
             x=df_ma[date_col],
             y=df_ma[f"Page Growth {window_size}MA"],
+            mode='lines',
+            name='Page Growth Rate (%)',
+            line=dict(color='blue', width=2)
+        ))
+
+        # Lagged and Adjusted Traffic Change Rate Line
+        fig.add_trace(go.Scatter(
+            x=df_ma[date_col],
+            y=df_ma[f"Lagged Traffic Change {window_size}MA"],
+            mode='lines',
+            name='Lagged Traffic Change Rate (%)',
+            line=dict(color='red', width=2)
+        ))
+
+        # Traffic per Page Line
+        fig.add_trace(go.Scatter(
+            x=df_ma[date_col],
+            y=df_ma[f"Lagged Traffic per Page {window_size}MA"],
+            mode='lines',
+            name='Lagged Traffic per Page',
+            line=dict(color='green', width=2, dash='dash')
+        ))
+
+        # Add ranking state indicators
+        for idx, row in df_ma.iterrows():
+            if row['Ranking State'] == 'Positive':
+                fig.add_vrect(
+                    x0=row[date_col] - timedelta(days=1),
+                    x1=row[date_col] + timedelta(days=1),
+                    fillcolor="green", opacity=0.3, line_width=0
+                )
+            else:
+                fig.add_vrect(
+                    x0=row[date_col] - timedelta(days=1),
+                    x1=row[date_col] + timedelta(days=1),
+                    fillcolor="red", opacity=0.3, line_width=0
+                )
+
+        # Add zero line for clarity
+        fig.add_shape(type="line",
+                      x0=df_ma[date_col].min(), x1=df_ma[date_col].max(),
+                      y0=0, y1=0,
+                      line=dict(color="gray", width=1, dash="dash"))
+
+        # Layout updates for a "cool and sexy" look
+        fig.update_layout(
+            title=f"{window_size}-Period Moving Average with {lag_period}-Period Lag",
+            xaxis_title="Date",
+            yaxis_title="Percentage (%)",
+            template="plotly_dark",
+            hovermode="x unified",
+            legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
+            margin=dict(l=40, r=40, t=40, b=40)
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.error("Analysis could not be completed due to insufficient data or a calculation error.")
