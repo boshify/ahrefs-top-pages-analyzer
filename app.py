@@ -7,7 +7,7 @@ from datetime import timedelta
 # Set Streamlit to wide mode by default
 st.set_page_config(layout="wide")
 
-st.title('Ahrefs Twiddler Analyzer')
+st.title('Ahrefs Top Pages Analyzer')
 
 # Move inputs to the sidebar
 with st.sidebar:
