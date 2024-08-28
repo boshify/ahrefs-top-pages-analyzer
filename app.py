@@ -151,7 +151,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
             overlaying="y",
             showgrid=False,
             range=[-50, 50],  # Limiting the range for better visibility
-            type='linear'  # You can change to 'log' for a logarithmic scale if needed
+            type='log'  # Apply logarithmic scale to the percentage changes
         ),
         template="plotly_dark",
         hovermode="x unified",
