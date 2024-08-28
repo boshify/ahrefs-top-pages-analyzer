@@ -142,7 +142,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
         template="plotly_dark",
         hovermode="x unified",
         legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
-        margin=dict(l=40, r=40, t=40, b=80),  # Added padding
+        margin=dict(l=40, r=40, t=80, b=80),  # Added padding
         height=800  # Make the chart taller
     )
 
