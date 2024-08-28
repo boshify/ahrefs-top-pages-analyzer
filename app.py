@@ -133,25 +133,27 @@ if uploaded_file is not None:
     # Plotly visualization
     fig = go.Figure()
 
-    # Page Growth Rate Line
+    # Page Growth Rate Line (right y-axis)
     fig.add_trace(go.Scatter(
         x=df[date_col],
         y=df[f"Page Change {window_size}MA"],
         mode='lines',
         name='Page Change Rate (%)',
-        line=dict(color='blue', width=2)
+        line=dict(color='blue', width=2),
+        yaxis="y2"
     ))
 
-    # Lagged Traffic Change Rate Line
+    # Lagged Traffic Change Rate Line (right y-axis)
     fig.add_trace(go.Scatter(
         x=df[date_col],
         y=df[f"Traffic Change {window_size}MA"],
         mode='lines',
         name='Traffic Change Rate (%)',
-        line=dict(color='red', width=2)
+        line=dict(color='red', width=2),
+        yaxis="y2"
     ))
 
-    # Traffic per Page Line
+    # Traffic per Page Line (left y-axis)
     fig.add_trace(go.Scatter(
         x=df[date_col],
         y=df[f"Lagged Traffic per Page {window_size}MA"],
@@ -175,17 +177,19 @@ if uploaded_file is not None:
                 fillcolor="red", opacity=0.3, line_width=0
             )
 
-    # Add zero line for clarity
+    # Add zero line for clarity on the right y-axis
     fig.add_shape(type="line",
                   x0=df[date_col].min(), x1=df[date_col].max(),
                   y0=0, y1=0,
+                  yref="y2",
                   line=dict(color="gray", width=1, dash="dash"))
 
-    # Layout updates for a "cool and sexy" look
+    # Layout updates for a clear and appealing look
     fig.update_layout(
         title=f"{date_frame.capitalize()} Ranking State Visualization",
         xaxis_title="Date",
-        yaxis_title="Percentage (%)",
+        yaxis_title="Traffic per Page",
+        yaxis2=dict(title="Percentage (%)", overlaying="y", side="right"),
         template="plotly_dark",
         hovermode="x unified",
         legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
