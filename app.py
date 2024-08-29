@@ -59,7 +59,7 @@ with st.sidebar:
             df['Traffic Change Rate'] = df[traffic_col].pct_change() * 100
 
             # Allow user to select the lag period
-            lag_period = st.slider("Select Lag Period (in periods)", min_value=0, max_value=12, value=1, step=1)
+            lag_period = st.slider("Select Lag Period (in periods)", min_value=-36, max_value=36, value=0, step=1)
 
             # Allow user to select the moving average window size
             max_window_size = len(df)
