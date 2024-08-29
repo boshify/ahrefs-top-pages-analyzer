@@ -77,7 +77,7 @@ with st.sidebar:
             positive_correlation = df[df['Ranking State'] == 'Positive'][[page_col, traffic_col]].corr().iloc[0, 1]
             negative_correlation = df[df['Ranking State'] == 'Negative'][[page_col, traffic_col]].corr().iloc[0, 1]
 
-            # Calculate Average Page Increase for Positive and Negative Ranking States
+            # Calculate Weighted Average Page Increase for Positive and Negative Ranking States
             positive_avg = np.average(df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"].dropna())
             negative_avg = np.average(df[df['Ranking State'] == 'Negative'][f"Page Change {window_size}MA"].dropna())
 
@@ -216,17 +216,17 @@ with st.sidebar:
                         )
 
                     # Add the final state that runs until the end date
-                    final_state = 'Positive' if df.iloc[-1]['Traffic per Page'] > df.iloc[-2]['Traffic per Page'] else 'Negative'
+                    final_state = 'Positive' if df.iloc[-1][f"Traffic per Page {window_size}MA"] > df.iloc[-2][f"Traffic per Page {window_size}MA"] else 'Negative'
                     final_start_date = ranking_state_changes.iloc[-1][date_col]
                     final_end_date = df[date_col].max()
-                    final_avg_tpp_start = ranking_state_changes.iloc[-1]['Traffic per Page']
-                    final_avg_tpp_end = df.iloc[-1]['Traffic per Page']
+                    final_avg_tpp_start = ranking_state_changes.iloc[-1][f"Traffic per Page {window_size}MA"]
+                    final_avg_tpp_end = df.iloc[-1][f"Traffic per Page {window_size}MA"]
 
                     # Calculate final period page change and traffic change
                     final_page_change_total = (df.iloc[-1][page_col] - ranking_state_changes.iloc[-1][page_col]) / ranking_state_changes.iloc[-1][page_col] * 100
                     final_traffic_change_pct = df.iloc[-1]['Traffic Change Rate']
 
-                    final_period_correlation = df[[page_col, traffic_col]].corr().iloc[0, 1]
+                    final_period_correlation = df[(df[date_col] >= final_start_date) & (df[date_col] <= final_end_date)][[page_col, traffic_col]].corr().iloc[0, 1]
 
                     ranking_state_report.append(
                         f"From {final_start_date.strftime('%Y-%m-%d')} to {final_end_date.strftime('%Y-%m-%d')}, the site was in a **{final_state}** ranking state. "
@@ -243,5 +243,6 @@ with st.sidebar:
             if ranking_state_report:
                 for report in ranking_state_report:
                     st.write(report)
+
 else:
     st.write("Please add Date, Pages, and Traffic fields to begin the analysis.")
