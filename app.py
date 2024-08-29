@@ -110,7 +110,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
                 x0=df[date_col].min(), x1=df[date_col].max(),
                 y0=0, y1=0,
                 yref="y2",
-                line=dict(color="gray", width=1, dash="dash"))
+                line=dict(color="gray", width=2, dash="dash"))
 
     # Layout updates for a clear and appealing look
     fig.update_layout(
@@ -129,6 +129,8 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
             type='linear'
         ),
         template="plotly_dark",
+        plot_bgcolor="#323335",  # Set the plot background color
+        paper_bgcolor="#323335",  # Set the paper (entire chart) background color
         hovermode="x unified",
         legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
         margin=dict(l=20, r=20, t=120, b=100),  # Updated margin
