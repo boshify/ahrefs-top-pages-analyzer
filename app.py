@@ -51,29 +51,29 @@ with st.sidebar:
             else:
                 df = df.sort_values(by=date_col)
 
-            # Calculate total pages added or removed per period
+            # Calculate total pages added or removed per period using vectorized operations
             df['Pages Added'] = df[page_col].diff().fillna(0)
             df['Page Change Rate'] = df['Pages Added'] / (df[page_col].shift(1) + df['Pages Added']).replace({0: np.nan}) * 100
 
-            # Calculate Traffic per Page directly from the Traffic and Pages columns
+            # Calculate Traffic per Page directly from the Traffic and Pages columns using vectorized operations
             df['Traffic per Page'] = df[traffic_col] / df[page_col]
 
-            # Calculate Traffic Change Rate compared to the previous period
+            # Calculate Traffic Change Rate compared to the previous period using vectorized operations
             df['Traffic Change Rate'] = df[traffic_col].pct_change() * 100
 
             # Allow user to select the moving average window size
             max_window_size = len(df)
             window_size = st.slider(f"Select Moving Average Window ({date_frame})", min_value=1, max_value=max_window_size, value=3, step=1)
 
-            # Apply the moving average to the relevant columns
+            # Apply the moving average to the relevant columns using vectorized operations
             df[f"Page Change {window_size}MA"] = df['Page Change Rate'].rolling(window=window_size).mean()
             df[f"Traffic Change {window_size}MA"] = df['Traffic Change Rate'].rolling(window=window_size).mean()
             df[f"Traffic per Page {window_size}MA"] = df['Traffic per Page'].rolling(window=window_size).mean()
 
-            # Ensure ranking state indicators are calculated correctly
+            # Ensure ranking state indicators are calculated correctly using vectorized operations
             df['Ranking State'] = np.where(df[f"Traffic per Page {window_size}MA"].diff().fillna(0) > 0, 'Positive', 'Negative')
 
-            # Calculate Weighted Average Page Increase for Positive and Negative Ranking States
+            # Calculate Weighted Average Page Increase for Positive and Negative Ranking States using vectorized operations
             positive_weighted_avg = np.average(df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"].dropna())
             negative_weighted_avg = np.average(df[df['Ranking State'] == 'Negative'][f"Page Change {window_size}MA"].dropna())
 
@@ -179,7 +179,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
     st.write(summary_report)
 
     def generate_ranking_report(df):
-        # Identify Positive and Negative Ranking States based on Traffic per Page change
+        # Identify Positive and Negative Ranking States based on Traffic per Page change using vectorized operations
         df['Ranking State'] = np.where(df[f"Traffic per Page {window_size}MA"].diff().fillna(0) > 0, 'Positive', 'Negative')
         ranking_state_changes = df[df['Ranking State'] != df['Ranking State'].shift(1)]
 
@@ -193,19 +193,16 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
                 avg_tpp_end = ranking_state_changes.iloc[i + 1][f"Traffic per Page {window_size}MA"]
 
                 # Handle cases where avg_tpp_start or avg_tpp_end might be NaN
-                if pd.isna(avg_tpp_start) or pd.isna(avg_tpp_end):
-                    continue
+                if not pd.isna(avg_tpp_start) and not pd.isna(avg_tpp_end):
+                    page_change_total = (ranking_state_changes.iloc[i + 1][page_col] - ranking_state_changes.iloc[i][page_col]) / ranking_state_changes.iloc[i][page_col] * 100
+                    traffic_change_pct = ranking_state_changes.iloc[i + 1]['Traffic Change Rate']
 
-                # Calculate page change and traffic change details
-                page_change_total = (ranking_state_changes.iloc[i + 1][page_col] - ranking_state_changes.iloc[i][page_col]) / ranking_state_changes.iloc[i][page_col] * 100
-                traffic_change_pct = ranking_state_changes.iloc[i + 1]['Traffic Change Rate']
-
-                ranking_state_report.append(
-                    f"From {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}, the site was in a **{state}** ranking state. "
-                    f"The average traffic per page {'**increased**' if state == 'Positive' else '**decreased**'} from **{avg_tpp_start:.2f}** to **{avg_tpp_end:.2f}**. "
-                    f"Pages {'**increased**' if page_change_total > 0 else '**decreased**'} by **{page_change_total:.2f}%** "
-                    f"and traffic {'**increased**' if traffic_change_pct > 0 else '**decreased**'} by **{traffic_change_pct:.2f}%** compared to the previous period."
-                )
+                    ranking_state_report.append(
+                        f"From {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}, the site was in a **{state}** ranking state. "
+                        f"The average traffic per page {'**increased**' if state == 'Positive' else '**decreased**'} from **{avg_tpp_start:.2f}** to **{avg_tpp_end:.2f}**. "
+                        f"Pages {'**increased**' if page_change_total > 0 else '**decreased**'} by **{page_change_total:.2f}%** "
+                        f"and traffic {'**increased**' if traffic_change_pct > 0 else '**decreased**'} by **{traffic_change_pct:.2f}%** compared to the previous period."
+                    )
 
             # Add the final state that runs until the end date
             final_state = 'Positive' if df.iloc[-1][f"Traffic per Page {window_size}MA"] > df.iloc[-2][f"Traffic per Page {window_size}MA"] else 'Negative'
@@ -214,7 +211,6 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
             final_avg_tpp_start = ranking_state_changes.iloc[-1][f"Traffic per Page {window_size}MA"]
             final_avg_tpp_end = df.iloc[-1][f"Traffic per Page {window_size}MA"]
 
-            # Handle cases where avg_tpp_start or avg_tpp_end might be NaN
             if not pd.isna(final_avg_tpp_start) and not pd.isna(final_avg_tpp_end):
                 final_page_change_total = (df.iloc[-1][page_col] - ranking_state_changes.iloc[-1][page_col]) / ranking_state_changes.iloc[-1][page_col] * 100
                 final_traffic_change_pct = df.iloc[-1]['Traffic Change Rate']
