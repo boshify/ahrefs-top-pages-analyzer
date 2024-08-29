@@ -79,17 +79,15 @@ with st.sidebar:
             # Ensure ranking state indicators are calculated correctly
             df['Ranking State'] = np.where(df[f"Lagged Traffic per Page {window_size}MA"].diff() > 0, 'Positive', 'Negative')
 
-            # Calculate Weighted Average Page Increase for Positive and Negative Ranking States
-            positive_weighted_avg = np.average(df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"], 
-                                               weights=df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"].count())
-            negative_weighted_avg = np.average(df[df['Ranking State'] == 'Negative'][f"Page Change {window_size}MA"], 
-                                               weights=df[df['Ranking State'] == 'Negative'][f"Page Change {window_size}MA"].count())
+            # Calculate Average Page Increase for Positive and Negative Ranking States
+            positive_avg = df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"].mean()
+            negative_avg = df[df['Ranking State'] == 'Negative'][f"Page Change {window_size}MA"].mean()
 
             # Summarize the analysis
             summary_report = f"""
             **Summary Report:**
-            - **Page Increase Threshold for Positive Ranking States (Weighted Average):** {positive_weighted_avg:.2f}%
-            - **Page Increase Threshold for Negative Ranking States (Weighted Average):** {negative_weighted_avg:.2f}%
+            - **Page Increase Threshold for Positive Ranking States (Average):** {positive_avg:.2f}%
+            - **Page Increase Threshold for Negative Ranking States (Average):** {negative_avg:.2f}%
             """
 
             st.write(summary_report)
