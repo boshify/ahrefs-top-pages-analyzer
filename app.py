@@ -91,7 +91,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
         y=df[f"Page Change {window_size}MA"],
         mode='lines',
         name='Page Change Rate (%)',
-        line=dict(color='blue', width=2),
+        line=dict(color='#3288d7', width=2),
         yaxis="y2"
     ))
 
@@ -101,7 +101,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
         y=df[f"Traffic Change {window_size}MA"],
         mode='lines',
         name='Traffic Change Rate (%)',
-        line=dict(color='red', width=2),
+        line=dict(color='#ff8800', width=2),
         yaxis="y2"
     ))
 
