@@ -76,20 +76,15 @@ with st.sidebar:
             # Ensure ranking state indicators are calculated correctly
             df['Ranking State'] = np.where(df[f"Lagged Traffic per Page {window_size}MA"].diff() > 0, 'Positive', 'Negative')
 
-            # Calculate Average Page Increase for Positive and Negative Ranking States
-            positive_avg = df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"].mean()
-            negative_avg = df[df['Ranking State'] == 'Negative'][f"Page Change {window_size}MA"].mean()
+            # Calculate minimum and maximum Page Increase for Positive Ranking States
+            positive_min = df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"].min()
+            positive_max = df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"].max()
 
-            # Calculate deviations from the positive average
-            df['Deviation from Positive Avg (%)'] = df[f"Page Change {window_size}MA"] - positive_avg
-
-            # Summarize the analysis
+            # Summarize the analysis with min and max thresholds
             summary_report = f"""
             **Summary Report:**
-            - **Average Page Increase during Positive Ranking States:** {positive_avg:.2f}%
-            - **Average Page Increase during Negative Ranking States:** {negative_avg:.2f}%
-            - **Deviation from Positive Average that Triggers Negative States:** {negative_avg - positive_avg:.2f}% on average.
-            - **Threshold for Maintaining a Positive Ranking State:** Page increases within {positive_avg:.2f}% generally keep the site in a positive state.
+            - **Page Increase Threshold for Positive Ranking States:** {positive_min:.2f}% to {positive_max:.2f}%
+            - **Threshold for Maintaining a Positive Ranking State:** Page increases within this range generally keep the site in a positive state.
             """
 
             st.write(summary_report)
