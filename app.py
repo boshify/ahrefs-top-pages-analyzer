@@ -58,7 +58,7 @@ with st.sidebar:
             # Calculate Traffic Change Rate compared to the previous period
             df['Traffic Change Rate'] = df[traffic_col].pct_change() * 100
 
-            # Allow user to select the lag period
+            # Allow user to select the lag period, including negative lag
             lag_period = st.slider("Select Lag Period (in periods)", min_value=-36, max_value=36, value=0, step=1)
 
             # Allow user to select the moving average window size
@@ -70,8 +70,11 @@ with st.sidebar:
             df[f"Traffic Change {window_size}MA"] = df['Traffic Change Rate'].rolling(window=window_size).mean()
             df[f"Traffic per Page {window_size}MA"] = df['Traffic per Page'].rolling(window=window_size).mean()
 
+            # Apply lag, handling negative and positive values correctly
             if lag_period > 0:
                 df[f"Lagged Traffic per Page {window_size}MA"] = df[f"Traffic per Page {window_size}MA"].shift(lag_period)
+            elif lag_period < 0:
+                df[f"Lagged Traffic per Page {window_size}MA"] = df[f"Traffic per Page {window_size}MA"].shift(lag_period).shift(-lag_period)
             else:
                 df[f"Lagged Traffic per Page {window_size}MA"] = df[f"Traffic per Page {window_size}MA"]
 
