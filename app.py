@@ -241,6 +241,7 @@ with st.sidebar:
             df, ranking_state_report = generate_ranking_report(df.copy())
 
             if ranking_state_report:
+                st.write(summary_report)
                 for report in ranking_state_report:
                     st.write(report)
 
