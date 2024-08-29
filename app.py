@@ -73,10 +73,6 @@ with st.sidebar:
             # Ensure ranking state indicators are calculated correctly
             df['Ranking State'] = np.where(df[f"Traffic per Page {window_size}MA"].diff().fillna(0) > 0, 'Positive', 'Negative')
 
-            # Calculate correlation between Traffic and Pages for Positive and Negative Ranking States
-            positive_correlation = df[df['Ranking State'] == 'Positive'][[page_col, traffic_col]].corr().iloc[0, 1]
-            negative_correlation = df[df['Ranking State'] == 'Negative'][[page_col, traffic_col]].corr().iloc[0, 1]
-
             # Calculate Weighted Average Page Increase for Positive and Negative Ranking States
             positive_weighted_avg = np.average(df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"].dropna())
             negative_weighted_avg = np.average(df[df['Ranking State'] == 'Negative'][f"Page Change {window_size}MA"].dropna())
@@ -86,8 +82,6 @@ with st.sidebar:
             **Summary Report:**
             - **Page Increase Threshold for Positive Ranking States (Weighted Average):** {positive_weighted_avg:.2f}%
             - **Page Increase Threshold for Negative Ranking States (Weighted Average):** {negative_weighted_avg:.2f}%
-            - **Traffic to Page Correlation Score for Positive Ranking States:** {positive_correlation:.2f}
-            - **Traffic to Page Correlation Score for Negative Ranking States:** {negative_correlation:.2f}
             """
 
 # Now display the main content (visualization and ranking state report) in the main page
@@ -206,15 +200,11 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
                 page_change_total = (ranking_state_changes.iloc[i + 1][page_col] - ranking_state_changes.iloc[i][page_col]) / ranking_state_changes.iloc[i][page_col] * 100
                 traffic_change_pct = ranking_state_changes.iloc[i + 1]['Traffic Change Rate']
 
-                # Calculate correlation for the current period
-                period_correlation = df[(df[date_col] >= start_date) & (df[date_col] <= end_date)][[page_col, traffic_col]].corr().iloc[0, 1]
-
                 ranking_state_report.append(
                     f"From {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}, the site was in a **{state}** ranking state. "
                     f"The average traffic per page {'**increased**' if state == 'Positive' else '**decreased**'} from **{avg_tpp_start:.2f}** to **{avg_tpp_end:.2f}**. "
                     f"Pages {'**increased**' if page_change_total > 0 else '**decreased**'} by **{page_change_total:.2f}%** "
-                    f"and traffic {'**increased**' if traffic_change_pct > 0 else '**decreased**'} by **{traffic_change_pct:.2f}%** compared to the previous period. "
-                    f"**Traffic to Page Correlation Score:** {period_correlation:.2f}"
+                    f"and traffic {'**increased**' if traffic_change_pct > 0 else '**decreased**'} by **{traffic_change_pct:.2f}%** compared to the previous period."
                 )
 
             # Add the final state that runs until the end date
@@ -229,14 +219,11 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
                 final_page_change_total = (df.iloc[-1][page_col] - ranking_state_changes.iloc[-1][page_col]) / ranking_state_changes.iloc[-1][page_col] * 100
                 final_traffic_change_pct = df.iloc[-1]['Traffic Change Rate']
 
-                final_period_correlation = df[[page_col, traffic_col]].corr().iloc[0, 1]
-
                 ranking_state_report.append(
                     f"From {final_start_date.strftime('%Y-%m-%d')} to {final_end_date.strftime('%Y-%m-%d')}, the site was in a **{final_state}** ranking state. "
                     f"The average traffic per page {'**increased**' if final_state == 'Positive' else '**decreased**'} from **{final_avg_tpp_start:.2f}** to **{final_avg_tpp_end:.2f}**. "
                     f"Pages {'**increased**' if final_page_change_total > 0 else '**decreased**'} by **{final_page_change_total:.2f}%** "
-                    f"and traffic {'**increased**' if final_traffic_change_pct > 0 else '**decreased**'} by **{final_traffic_change_pct:.2f}%** compared to the previous period. "
-                    f"**Traffic to Page Correlation Score:** {final_period_correlation:.2f}"
+                    f"and traffic {'**increased**' if final_traffic_change_pct > 0 else '**decreased**'} by **{final_traffic_change_pct:.2f}%** compared to the previous period."
                 )
 
         return df, ranking_state_report
