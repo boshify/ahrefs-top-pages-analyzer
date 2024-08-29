@@ -37,7 +37,7 @@ with st.sidebar:
             # Date range selector
             min_date = df[date_col].min()
             max_date = df[date_col].max()
-            date_range = st.date_input("Select Date Range", [min_date, max_value=max_date)
+            date_range = st.date_input("Select Date Range", [min_date, max_date], min_value=min_date, max_value=max_date)
 
             # Filter data based on date range
             start_date, end_date = date_range
