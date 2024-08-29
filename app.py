@@ -91,7 +91,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
         y=df[f"Page Change {window_size}MA"],
         mode='lines',
         name='Page Change Rate (%)',
-        line=dict(color='#3288d7', width=2),
+        line=dict(color='#3288d7', width=3),
         yaxis="y2"
     ))
 
@@ -101,7 +101,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
         y=df[f"Traffic Change {window_size}MA"],
         mode='lines',
         name='Traffic Change Rate (%)',
-        line=dict(color='#ff8800', width=2),
+        line=dict(color='#ff8800', width=3),
         yaxis="y2"
     ))
 
@@ -129,7 +129,6 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
             type='linear'
         ),
         template="plotly_dark",
-        plot_bgcolor="#fff",  # Set the plot background color
         hovermode="x unified",
         legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
         margin=dict(l=20, r=20, t=120, b=100),  # Updated margin
