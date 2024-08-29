@@ -77,19 +77,26 @@ with st.sidebar:
             df['Ranking State'] = np.where(df[f"Lagged Traffic per Page {window_size}MA"].diff() > 0, 'Positive', 'Negative')
 
             # Calculate minimum and maximum Page Increase for Positive Ranking States
-            positive_min = df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"].min()
-            positive_max = df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"].max()
+            positive_df = df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"]
+            negative_df = df[df['Ranking State'] == 'Negative'][f"Page Change {window_size}MA"]
 
-            # Calculate minimum and maximum Page Increase for Negative Ranking States
-            negative_min = df[df['Ranking State'] == 'Negative'][f"Page Change {window_size}MA"].min()
-            negative_max = df[df['Ranking State'] == 'Negative'][f"Page Change {window_size}MA"].max()
+            # Calculate weighted min and max for Positive Ranking States
+            positive_min_weighted = (positive_df.min() * (positive_df == positive_df.min()).sum() + 
+                                     positive_df.max() * (positive_df == positive_df.max()).sum()) / len(positive_df)
+            positive_max_weighted = (positive_df.max() * (positive_df == positive_df.max()).sum() + 
+                                     positive_df.min() * (positive_df == positive_df.min()).sum()) / len(positive_df)
 
-            # Summarize the analysis with min and max thresholds for both Positive and Negative Ranking States
+            # Calculate weighted min and max for Negative Ranking States
+            negative_min_weighted = (negative_df.min() * (negative_df == negative_df.min()).sum() + 
+                                     negative_df.max() * (negative_df == negative_df.max()).sum()) / len(negative_df)
+            negative_max_weighted = (negative_df.max() * (negative_df == negative_df.max()).sum() + 
+                                     negative_df.min() * (negative_df == negative_df.min()).sum()) / len(negative_df)
+
+            # Summarize the analysis with weighted min and max thresholds for both Positive and Negative Ranking States
             summary_report = f"""
             **Summary Report:**
-            - **Page Increase Threshold for Positive Ranking States:** {positive_min:.2f}% to {positive_max:.2f}%
-            - **Page Increase Threshold for Negative Ranking States:** {negative_min:.2f}% to {negative_max:.2f}%
-            - **Threshold for Maintaining a Positive Ranking State:** Page increases within the Positive threshold range generally keep the site in a positive state.
+            - **Page Increase Threshold for Positive Ranking States:** {positive_min_weighted:.2f}% to {positive_max_weighted:.2f}%
+            - **Page Increase Threshold for Negative Ranking States:** {negative_min_weighted:.2f}% to {negative_max_weighted:.2f}%
             """
 
             st.write(summary_report)
