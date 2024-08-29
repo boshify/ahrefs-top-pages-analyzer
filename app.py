@@ -7,7 +7,7 @@ from datetime import timedelta
 # Set Streamlit to wide mode by default
 st.set_page_config(layout="wide")
 
-st.title('Ahrefs Top Pages Analyzer')
+st.title('Ahrefs Twiddler Analyzer')
 
 # Move inputs to the sidebar
 with st.sidebar:
@@ -78,11 +78,29 @@ with st.sidebar:
             # Ensure ranking state indicators are calculated correctly
             df['Ranking State'] = np.where(df[f"Lagged Traffic per Page {window_size}MA"].diff() > 0, 'Positive', 'Negative')
 
+            # Calculate Average Page Increase for Positive and Negative Ranking States
+            positive_avg = df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"].mean()
+            negative_avg = df[df['Ranking State'] == 'Negative'][f"Page Change {window_size}MA"].mean()
+
+            # Calculate deviations from the positive average
+            df['Deviation from Positive Avg (%)'] = df[f"Page Change {window_size}MA"] - positive_avg
+
+            # Summarize the analysis
+            summary_report = f"""
+            **Summary Report:**
+            - **Average Page Increase during Positive Ranking States:** {positive_avg:.2f}%
+            - **Average Page Increase during Negative Ranking States:** {negative_avg:.2f}%
+            - **Deviation from Positive Average that Triggers Negative States:** {negative_avg - positive_avg:.2f}% on average.
+            - **Threshold for Maintaining a Positive Ranking State:** Page increases within {positive_avg:.2f}% generally keep the site in a positive state.
+            """
+
+            st.write(summary_report)
+
 # Now display the main content (visualization and ranking state report) in the main page
 if uploaded_file is not None and date_col and page_col and traffic_col:
     st.write("### Visualization")
-
-    # Plotly visualization for percentage changes
+    
+    # Plotly visualization
     fig = go.Figure()
 
     # Page Growth Rate Line (right y-axis)
@@ -91,7 +109,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
         y=df[f"Page Change {window_size}MA"],
         mode='lines',
         name='Page Change Rate (%)',
-        line=dict(color='#3288d7', width=3),
+        line=dict(color='#3288d7', width=2),
         yaxis="y2"
     ))
 
@@ -101,55 +119,18 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
         y=df[f"Traffic Change {window_size}MA"],
         mode='lines',
         name='Traffic Change Rate (%)',
-        line=dict(color='#ff8800', width=3),
+        line=dict(color='#ff8800', width=2),
         yaxis="y2"
     ))
 
-    # Add zero line for clarity on the right y-axis
-    fig.add_shape(type="line",
-                x0=df[date_col].min(), x1=df[date_col].max(),
-                y0=0, y1=0,
-                yref="y2",
-                line=dict(color="gray", width=2, dash="dash"))
-
-    # Layout updates for a clear and appealing look
-    fig.update_layout(
-        title=f"{date_frame.capitalize()} Ranking State Visualization",
-        xaxis_title="Date",
-        yaxis=dict(
-            title="Traffic per Page",
-            side="left"
-        ),
-        yaxis2=dict(
-            title="Percentage (%)",
-            side="right",
-            overlaying="y",
-            showgrid=False,
-            range=[-50, 50],  # Limiting the range for better visibility
-            type='linear'
-        ),
-        template="plotly_dark",
-        hovermode="x unified",
-        legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
-        margin=dict(l=20, r=20, t=120, b=100),  # Updated margin
-        height=1000  # Make the chart taller
-    )
-
-    # Make tooltips bigger and percentage changes displayed correctly
-    fig.update_traces(hovertemplate='%{y:.2f}%')
-
-    # Add scroll and zoom functionality
-    fig.update_xaxes(rangeslider_visible=True)
-
-    # Separate Traffic per Page visualization overlaid on the main chart
+    # Traffic per Page Line (left y-axis, solid line with increased thickness)
     fig.add_trace(go.Scatter(
         x=df[date_col],
         y=df[f"Lagged Traffic per Page {window_size}MA"],
         mode='lines',
         name='Traffic per Page',
-        line=dict(color='green', width=4, dash='dash'),
-        yaxis="y",  # Aligns to the left y-axis
-        hovertemplate='Traffic per Page: %{y:.2f}<extra></extra>'  # Aligns to the left side for clarity
+        line=dict(color='green', width=4),  # Increase line thickness
+        hovertemplate='Traffic per Page: %{y:.2f}<extra></extra>'  # Format without the % symbol
     ))
 
     # Add ranking state indicators to match the ranking state report
@@ -166,6 +147,34 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
                 x1=row[date_col] + timedelta(days=1),
                 fillcolor="red", opacity=0.2, line_width=0  # More visible
             )
+
+    # Add zero line for clarity on the right y-axis
+    fig.add_shape(type="line",
+                x0=df[date_col].min(), x1=df[date_col].max(),
+                y0=0, y1=0,
+                yref="y2",
+                line=dict(color="gray", width=1, dash="dash"))
+
+    # Layout updates for a clear and appealing look
+    fig.update_layout(
+        title=f"{date_frame.capitalize()} Ranking State Visualization",
+        xaxis_title="Date",
+        yaxis_title="Traffic per Page",
+        yaxis2=dict(title="Percentage (%)", overlaying="y", side="right", range=[-50, 50]),
+        template="plotly_dark",
+        plot_bgcolor="#323335",  # Set the plot background color
+        paper_bgcolor="#323335",  # Set the paper (entire chart) background color
+        hovermode="x unified",
+        legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
+        margin=dict(l=20, r=20, t=120, b=100),  # Updated margin
+        height=1000  # Make the chart taller
+    )
+
+    # Make tooltips bigger and percentage changes displayed correctly
+    fig.update_traces(hovertemplate='%{y:.2f}%')
+
+    # Add scroll and zoom functionality
+    fig.update_xaxes(rangeslider_visible=True)
 
     st.plotly_chart(fig, use_container_width=True)
 
