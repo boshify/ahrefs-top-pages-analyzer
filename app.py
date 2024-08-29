@@ -245,5 +245,4 @@ with st.sidebar:
                 for report in ranking_state_report:
                     st.write(report)
 
-else:
-    st.write("Please add Date, Pages, and Traffic fields to begin the analysis.")
+
