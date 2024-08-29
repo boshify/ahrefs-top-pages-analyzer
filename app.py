@@ -22,7 +22,12 @@ with st.sidebar:
     uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
     if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
+        # Store the uploaded file in session state if not already stored
+        if 'df' not in st.session_state:
+            df = pd.read_csv(uploaded_file)
+            st.session_state['df'] = df
+        else:
+            df = st.session_state['df']
 
         st.write("Data Preview:")
         st.write(df.head())
