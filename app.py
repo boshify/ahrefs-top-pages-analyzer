@@ -71,12 +71,7 @@ with st.sidebar:
             df[f"Traffic per Page {window_size}MA"] = df['Traffic per Page'].rolling(window=window_size).mean()
 
             # Apply lag, handling negative and positive values correctly
-            if lag_period > 0:
-                df[f"Lagged Traffic per Page {window_size}MA"] = df[f"Traffic per Page {window_size}MA"].shift(lag_period)
-            elif lag_period < 0:
-                df[f"Lagged Traffic per Page {window_size}MA"] = df[f"Traffic per Page {window_size}MA"].shift(lag_period).shift(-lag_period)
-            else:
-                df[f"Lagged Traffic per Page {window_size}MA"] = df[f"Traffic per Page {window_size}MA"]
+            df[f"Lagged Traffic per Page {window_size}MA"] = df[f"Traffic per Page {window_size}MA"].shift(lag_period)
 
             # Ensure ranking state indicators are calculated correctly
             df['Ranking State'] = np.where(df[f"Lagged Traffic per Page {window_size}MA"].diff() > 0, 'Positive', 'Negative')
