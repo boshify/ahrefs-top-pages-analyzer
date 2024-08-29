@@ -80,11 +80,16 @@ with st.sidebar:
             positive_min = df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"].min()
             positive_max = df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"].max()
 
-            # Summarize the analysis with min and max thresholds
+            # Calculate minimum and maximum Page Increase for Negative Ranking States
+            negative_min = df[df['Ranking State'] == 'Negative'][f"Page Change {window_size}MA"].min()
+            negative_max = df[df['Ranking State'] == 'Negative'][f"Page Change {window_size}MA"].max()
+
+            # Summarize the analysis with min and max thresholds for both Positive and Negative Ranking States
             summary_report = f"""
             **Summary Report:**
             - **Page Increase Threshold for Positive Ranking States:** {positive_min:.2f}% to {positive_max:.2f}%
-            - **Threshold for Maintaining a Positive Ranking State:** Page increases within this range generally keep the site in a positive state.
+            - **Page Increase Threshold for Negative Ranking States:** {negative_min:.2f}% to {negative_max:.2f}%
+            - **Threshold for Maintaining a Positive Ranking State:** Page increases within the Positive threshold range generally keep the site in a positive state.
             """
 
             st.write(summary_report)
