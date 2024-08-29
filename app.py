@@ -61,27 +61,34 @@ with st.sidebar:
             # Calculate Traffic Change Rate compared to the previous period
             df['Traffic Change Rate'] = df[traffic_col].pct_change() * 100
 
+            # Allow user to select the moving average window size
+            max_window_size = len(df)
+            window_size = st.slider(f"Select Moving Average Window ({date_frame})", min_value=1, max_value=max_window_size, value=3, step=1)
+
+            # Apply the moving average to the relevant columns
+            df[f"Page Change {window_size}MA"] = df['Page Change Rate'].rolling(window=window_size).mean()
+            df[f"Traffic Change {window_size}MA"] = df['Traffic Change Rate'].rolling(window=window_size).mean()
+            df[f"Traffic per Page {window_size}MA"] = df['Traffic per Page'].rolling(window=window_size).mean()
+
             # Ensure ranking state indicators are calculated correctly
-            df['Ranking State'] = np.where(df['Traffic per Page'].diff() > 0, 'Positive', 'Negative')
+            df['Ranking State'] = np.where(df[f"Traffic per Page {window_size}MA"].diff() > 0, 'Positive', 'Negative')
 
             # Calculate correlation between Traffic and Pages for Positive and Negative Ranking States
             positive_correlation = df[df['Ranking State'] == 'Positive'][[page_col, traffic_col]].corr().iloc[0, 1]
             negative_correlation = df[df['Ranking State'] == 'Negative'][[page_col, traffic_col]].corr().iloc[0, 1]
 
             # Calculate Average Page Increase for Positive and Negative Ranking States
-            positive_avg = df[df['Ranking State'] == 'Positive']['Page Change Rate'].mean()
-            negative_avg = df[df['Ranking State'] == 'Negative']['Page Change Rate'].mean()
+            positive_avg = df[df['Ranking State'] == 'Positive'][f"Page Change {window_size}MA"].mean()
+            negative_avg = df[df['Ranking State'] == 'Negative'][f"Page Change {window_size}MA"].mean()
 
             # Summarize the analysis
             summary_report = f"""
             **Summary Report:**
-            - **Page Increase Threshold for Positive Ranking States (Average):** {positive_avg:.2f}%
-            - **Page Increase Threshold for Negative Ranking States (Average):** {negative_avg:.2f}%
+            - **Page Increase Threshold for Positive Ranking States (Weighted Average):** {positive_avg:.2f}%
+            - **Page Increase Threshold for Negative Ranking States (Weighted Average):** {negative_avg:.2f}%
             - **Traffic to Page Correlation Score for Positive Ranking States:** {positive_correlation:.2f}
             - **Traffic to Page Correlation Score for Negative Ranking States:** {negative_correlation:.2f}
             """
-
-            st.write(summary_report)
 
 # Now display the main content (visualization and ranking state report) in the main page
 if uploaded_file is not None and date_col and page_col and traffic_col:
@@ -93,7 +100,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
     # Page Growth Rate Line (right y-axis)
     fig.add_trace(go.Scatter(
         x=df[date_col],
-        y=df['Page Change Rate'],
+        y=df[f"Page Change {window_size}MA"],
         mode='lines',
         name='Page Change Rate (%)',
         line=dict(color='#3288d7', width=3),
@@ -103,7 +110,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
     # Traffic Change Rate Line (right y-axis)
     fig.add_trace(go.Scatter(
         x=df[date_col],
-        y=df['Traffic Change Rate'],
+        y=df[f"Traffic Change {window_size}MA"],
         mode='lines',
         name='Traffic Change Rate (%)',
         line=dict(color='#ff8800', width=3),
@@ -149,7 +156,7 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
     # Separate Traffic per Page visualization overlaid on the main chart
     fig.add_trace(go.Scatter(
         x=df[date_col],
-        y=df['Traffic per Page'],
+        y=df[f"Traffic per Page {window_size}MA"],
         mode='lines',
         name='Traffic per Page',
         line=dict(color='green', width=4, dash='dash'),
@@ -175,10 +182,11 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
     st.plotly_chart(fig, use_container_width=True)
 
     st.header("Ranking State Report")
+    st.write(summary_report)
 
     def generate_ranking_report(df):
         # Identify Positive and Negative Ranking States based on Traffic per Page change
-        df['Ranking State'] = np.where(df['Traffic per Page'].diff() > 0, 'Positive', 'Negative')
+        df['Ranking State'] = np.where(df[f"Traffic per Page {window_size}MA"].diff() > 0, 'Positive', 'Negative')
         ranking_state_changes = df[df['Ranking State'] != df['Ranking State'].shift(1)]
 
         ranking_state_report = []
@@ -187,15 +195,15 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
                 state = ranking_state_changes.iloc[i]['Ranking State']
                 start_date = ranking_state_changes.iloc[i][date_col]
                 end_date = ranking_state_changes.iloc[i + 1][date_col] - timedelta(days=1)
-                avg_tpp_start = ranking_state_changes.iloc[i]['Traffic per Page']
-                avg_tpp_end = ranking_state_changes.iloc[i + 1]['Traffic per Page']
+                avg_tpp_start = ranking_state_changes.iloc[i][f"Traffic per Page {window_size}MA"]
+                avg_tpp_end = ranking_state_changes.iloc[i + 1][f"Traffic per Page {window_size}MA"]
 
                 # Calculate page change and traffic change details
                 page_change_total = (ranking_state_changes.iloc[i + 1][page_col] - ranking_state_changes.iloc[i][page_col]) / ranking_state_changes.iloc[i][page_col] * 100
                 traffic_change_pct = ranking_state_changes.iloc[i + 1]['Traffic Change Rate']
 
-                # Calculate correlation for the specific period
-                period_correlation = ranking_state_changes[[page_col, traffic_col]].corr().iloc[0, 1]
+                # Calculate correlation for the current period
+                period_correlation = df[(df[date_col] >= start_date) & (df[date_col] <= end_date)][[page_col, traffic_col]].corr().iloc[0, 1]
 
                 # Ensure ranking state is based on Traffic per Page change
                 state = 'Positive' if avg_tpp_end > avg_tpp_start else 'Negative'
