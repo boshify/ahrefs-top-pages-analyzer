@@ -9,6 +9,14 @@ st.set_page_config(layout="wide")
 
 st.title('Ahrefs Top Pages Analyzer')
 
+@st.cache_data(show_spinner=False)
+def calculate_moving_averages(df, page_col, traffic_col, window_size):
+    # Apply the moving average to the relevant columns using vectorized operations
+    df[f"Page Change {window_size}MA"] = df['Page Change Rate'].rolling(window=window_size).mean()
+    df[f"Traffic Change {window_size}MA"] = df['Traffic Change Rate'].rolling(window=window_size).mean()
+    df[f"Traffic per Page {window_size}MA"] = df['Traffic per Page'].rolling(window=window_size).mean()
+    return df
+
 # Move inputs to the sidebar
 with st.sidebar:
     uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
@@ -65,10 +73,8 @@ with st.sidebar:
             max_window_size = len(df)
             window_size = st.slider(f"Select Moving Average Window ({date_frame})", min_value=1, max_value=max_window_size, value=3, step=1)
 
-            # Apply the moving average to the relevant columns using vectorized operations
-            df[f"Page Change {window_size}MA"] = df['Page Change Rate'].rolling(window=window_size).mean()
-            df[f"Traffic Change {window_size}MA"] = df['Traffic Change Rate'].rolling(window=window_size).mean()
-            df[f"Traffic per Page {window_size}MA"] = df['Traffic per Page'].rolling(window=window_size).mean()
+            # Calculate moving averages (cached if window size hasn't changed)
+            df = calculate_moving_averages(df, page_col, traffic_col, window_size)
 
             # Ensure ranking state indicators are calculated correctly using vectorized operations
             df['Ranking State'] = np.where(df[f"Traffic per Page {window_size}MA"].diff().fillna(0) > 0, 'Positive', 'Negative')
@@ -192,7 +198,6 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
                 avg_tpp_start = ranking_state_changes.iloc[i][f"Traffic per Page {window_size}MA"]
                 avg_tpp_end = ranking_state_changes.iloc[i + 1][f"Traffic per Page {window_size}MA"]
 
-                # Handle cases where avg_tpp_start or avg_tpp_end might be NaN
                 if not pd.isna(avg_tpp_start) and not pd.isna(avg_tpp_end):
                     page_change_total = (ranking_state_changes.iloc[i + 1][page_col] - ranking_state_changes.iloc[i][page_col]) / ranking_state_changes.iloc[i][page_col] * 100
                     traffic_change_pct = ranking_state_changes.iloc[i + 1]['Traffic Change Rate']
