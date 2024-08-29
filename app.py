@@ -37,7 +37,7 @@ with st.sidebar:
             # Date range selector
             min_date = df[date_col].min()
             max_date = df[date_col].max()
-            date_range = st.date_input("Select Date Range", [min_date, max_date], min_value=min_date, max_value=max_date)
+            date_range = st.date_input("Select Date Range", [min_date, max_value=max_date)
 
             # Filter data based on date range
             start_date, end_date = date_range
@@ -47,7 +47,7 @@ with st.sidebar:
             if date_frame == 'weekly':
                 df = df.resample('W-Mon', on=date_col).sum().reset_index().sort_values(by=date_col)
             elif date_frame == 'monthly':
-                df = df.resample('M', on=date_col). sum().reset_index().sort_values(by=date_col)
+                df = df.resample('M', on=date_col).sum().reset_index().sort_values(by=date_col)
             else:
                 df = df.sort_values(by=date_col)
 
@@ -69,6 +69,10 @@ with st.sidebar:
             df[f"Page Change {window_size}MA"] = df['Page Change Rate'].rolling(window=window_size).mean()
             df[f"Traffic Change {window_size}MA"] = df['Traffic Change Rate'].rolling(window=window_size).mean()
             df[f"Traffic per Page {window_size}MA"] = df['Traffic per Page'].rolling(window=window_size).mean()
+
+            # Fill NaN values after rolling average calculation
+            df.fillna(method='ffill', inplace=True)
+            df.fillna(method='bfill', inplace=True)
 
             # Ensure ranking state indicators are calculated correctly
             df['Ranking State'] = np.where(df[f"Traffic per Page {window_size}MA"].diff() > 0, 'Positive', 'Negative')
@@ -182,7 +186,6 @@ if uploaded_file is not None and date_col and page_col and traffic_col:
     st.plotly_chart(fig, use_container_width=True)
 
     st.header("Ranking State Report")
-    st.write(summary_report)
 
     def generate_ranking_report(df):
         # Identify Positive and Negative Ranking States based on Traffic per Page change
