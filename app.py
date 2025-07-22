@@ -156,9 +156,8 @@ with st.sidebar:
 if uploaded_file is not None and not st.session_state.get('input_error', False):
     st.write("### Visualization")
 
-    # Prepare hover text including Total Pages for each point
-    pages_tooltip = df[page_col].astype(int).astype(str)
-    date_tooltip = df[date_col].dt.strftime('%Y-%m-%d')
+    # Prepare customdata: 2D array (n_rows, 1) for Plotly
+    pages_tooltip = df[page_col].astype(int).values.reshape(-1, 1)
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -171,10 +170,9 @@ if uploaded_file is not None and not st.session_state.get('input_error', False):
         hovertemplate=(
             'Date: %{x}<br>'
             'Page Change Rate: %{y:.2f}%<br>'
-            f'Total Pages: %{customdata[0]}'
-            '<extra></extra>'
+            'Total Pages: %{customdata[0]}<extra></extra>'
         ),
-        customdata=np.stack([pages_tooltip], axis=-1),
+        customdata=pages_tooltip
     ))
     fig.add_trace(go.Scatter(
         x=df[date_col],
@@ -186,10 +184,9 @@ if uploaded_file is not None and not st.session_state.get('input_error', False):
         hovertemplate=(
             'Date: %{x}<br>'
             'Traffic Change Rate: %{y:.2f}%<br>'
-            f'Total Pages: %{customdata[0]}'
-            '<extra></extra>'
+            'Total Pages: %{customdata[0]}<extra></extra>'
         ),
-        customdata=np.stack([pages_tooltip], axis=-1),
+        customdata=pages_tooltip
     ))
     fig.add_shape(type="line",
                   x0=df[date_col].min(), x1=df[date_col].max(),
@@ -215,10 +212,9 @@ if uploaded_file is not None and not st.session_state.get('input_error', False):
         hovertemplate=(
             'Date: %{x}<br>'
             'Traffic per Page: %{y:.2f}<br>'
-            f'Total Pages: %{customdata[0]}'
-            '<extra></extra>'
+            'Total Pages: %{customdata[0]}<extra></extra>'
         ),
-        customdata=np.stack([pages_tooltip], axis=-1),
+        customdata=pages_tooltip
     ))
 
     for idx, row in df.iterrows():
