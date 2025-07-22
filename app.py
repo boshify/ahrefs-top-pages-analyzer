@@ -12,7 +12,6 @@ def calculate_moving_averages(df, page_col, traffic_col, window_size):
     df[f"Page Change {window_size}MA"] = df['Page Change Rate'].rolling(window=window_size).mean()
     df[f"Traffic Change {window_size}MA"] = df['Traffic Change Rate'].rolling(window=window_size).mean()
     df[f"Traffic per Page {window_size}MA"] = df['Traffic per Page'].rolling(window=window_size).mean()
-    df[f"Pages {window_size}MA"] = df[page_col].rolling(window=window_size).mean()  # For blue line
     return df
 
 def generate_ranking_report_table(df, window_size, date_col, page_col, traffic_col):
@@ -132,7 +131,7 @@ with st.sidebar:
                 df['Traffic per Page'] = df[traffic_col] / df[page_col]
                 df['Traffic Change Rate'] = df[traffic_col].pct_change() * 100
 
-                # 1-52 weeks for MA, default 1
+                # 1-52 weeks for MA, default = 1
                 max_window_size = min(len(df), 52)
                 window_size = st.slider(f"Select Moving Average Window ({date_frame})", min_value=1, max_value=max_window_size, value=1, step=1)
 
@@ -157,14 +156,40 @@ with st.sidebar:
 if uploaded_file is not None and not st.session_state.get('input_error', False):
     st.write("### Visualization")
 
+    # Prepare hover text including Total Pages for each point
+    pages_tooltip = df[page_col].astype(int).astype(str)
+    date_tooltip = df[date_col].dt.strftime('%Y-%m-%d')
+
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=df[date_col], y=df[f"Page Change {window_size}MA"], mode='lines', name='Page Change Rate (%)',
-        line=dict(color='#3288d7', width=3), yaxis="y2"
+        x=df[date_col],
+        y=df[f"Page Change {window_size}MA"],
+        mode='lines',
+        name='Page Change Rate (%)',
+        line=dict(color='#3288d7', width=3),
+        yaxis="y2",
+        hovertemplate=(
+            'Date: %{x}<br>'
+            'Page Change Rate: %{y:.2f}%<br>'
+            f'Total Pages: %{customdata[0]}'
+            '<extra></extra>'
+        ),
+        customdata=np.stack([pages_tooltip], axis=-1),
     ))
     fig.add_trace(go.Scatter(
-        x=df[date_col], y=df[f"Traffic Change {window_size}MA"], mode='lines', name='Traffic Change Rate (%)',
-        line=dict(color='#ff8800', width=3), yaxis="y2"
+        x=df[date_col],
+        y=df[f"Traffic Change {window_size}MA"],
+        mode='lines',
+        name='Traffic Change Rate (%)',
+        line=dict(color='#ff8800', width=3),
+        yaxis="y2",
+        hovertemplate=(
+            'Date: %{x}<br>'
+            'Traffic Change Rate: %{y:.2f}%<br>'
+            f'Total Pages: %{customdata[0]}'
+            '<extra></extra>'
+        ),
+        customdata=np.stack([pages_tooltip], axis=-1),
     ))
     fig.add_shape(type="line",
                   x0=df[date_col].min(), x1=df[date_col].max(),
@@ -179,18 +204,21 @@ if uploaded_file is not None and not st.session_state.get('input_error', False):
         margin=dict(l=20, r=20, t=120, b=100),
         height=1000
     )
-    fig.update_traces(hovertemplate='%{y:.2f}%')
     fig.update_xaxes(rangeslider_visible=True)
     fig.add_trace(go.Scatter(
-        x=df[date_col], y=df[f"Traffic per Page {window_size}MA"], mode='lines',
-        name='Traffic per Page', line=dict(color='green', width=4, dash='dash'),
-        yaxis="y", hovertemplate='Traffic per Page: %{y:.2f}<extra></extra>'
-    ))
-    # Blue dotted line for total pages
-    fig.add_trace(go.Scatter(
-        x=df[date_col], y=df[f"Pages {window_size}MA"], mode='lines',
-        name='Total Pages', line=dict(color='royalblue', width=4, dash='dot'),
-        yaxis="y", hovertemplate='Total Pages: %{y:.2f}<extra></extra>'
+        x=df[date_col],
+        y=df[f"Traffic per Page {window_size}MA"],
+        mode='lines',
+        name='Traffic per Page',
+        line=dict(color='green', width=4, dash='dash'),
+        yaxis="y",
+        hovertemplate=(
+            'Date: %{x}<br>'
+            'Traffic per Page: %{y:.2f}<br>'
+            f'Total Pages: %{customdata[0]}'
+            '<extra></extra>'
+        ),
+        customdata=np.stack([pages_tooltip], axis=-1),
     ))
 
     for idx, row in df.iterrows():
@@ -205,6 +233,7 @@ if uploaded_file is not None and not st.session_state.get('input_error', False):
     st.header("Ranking State Report (Table)")
     st.write(summary_report)
 
+    # Display Table Instead of Verbal Report
     ranking_report_df = generate_ranking_report_table(df.copy(), window_size, date_col, page_col, traffic_col)
     if not ranking_report_df.empty:
         st.dataframe(ranking_report_df)
