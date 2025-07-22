@@ -168,9 +168,9 @@ if uploaded_file is not None and not st.session_state.get('input_error', False):
         line=dict(color='#3288d7', width=3),
         yaxis="y2",
         hovertemplate=(
-            'Date: %{x}<br>'
-            'Page Change Rate: %{y:.2f}%<br>'
-            'Total Pages: %{customdata[0]}<extra></extra>'
+            '%{x}<br>'
+            'Total Pages: %{customdata[0]}<br>'
+            'Page Change Rate: %{y:.2f}%<extra></extra>'
         ),
         customdata=pages_tooltip
     ))
@@ -182,9 +182,9 @@ if uploaded_file is not None and not st.session_state.get('input_error', False):
         line=dict(color='#ff8800', width=3),
         yaxis="y2",
         hovertemplate=(
-            'Date: %{x}<br>'
-            'Traffic Change Rate: %{y:.2f}%<br>'
-            'Total Pages: %{customdata[0]}<extra></extra>'
+            '%{x}<br>'
+            'Total Pages: %{customdata[0]}<br>'
+            'Traffic Change Rate: %{y:.2f}%<extra></extra>'
         ),
         customdata=pages_tooltip
     ))
@@ -210,9 +210,9 @@ if uploaded_file is not None and not st.session_state.get('input_error', False):
         line=dict(color='green', width=4, dash='dash'),
         yaxis="y",
         hovertemplate=(
-            'Date: %{x}<br>'
-            'Traffic per Page: %{y:.2f}<br>'
-            'Total Pages: %{customdata[0]}<extra></extra>'
+            '%{x}<br>'
+            'Total Pages: %{customdata[0]}<br>'
+            'Traffic per Page: %{y:.2f}<extra></extra>'
         ),
         customdata=pages_tooltip
     ))
