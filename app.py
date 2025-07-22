@@ -143,8 +143,8 @@ with st.sidebar:
                 negative_weighted_avg = np.average(df[df['Ranking State'] == 'Negative'][f"Page Change {window_size}MA"].dropna())
                 summary_report = f"""
                 **Summary Report:**
-                - **Page Increase Threshold for Positive Ranking States (Weighted Average):** {positive_weighted_avg:.2f}%
-                - **Page Increase Threshold for Negative Ranking States (Weighted Average):** {negative_weighted_avg:.2f}%
+                - **Average Page Change Rate when Positive:** {positive_weighted_avg:.2f}%
+                - **Average Page Change Rate when Negative:** {negative_weighted_avg:.2f}%
                 """
 
     except Exception:
