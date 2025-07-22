@@ -156,8 +156,17 @@ with st.sidebar:
 if uploaded_file is not None and not st.session_state.get('input_error', False):
     st.write("### Visualization")
 
-    # Prepare customdata: 2D array (n_rows, 1) for Plotly
-    pages_tooltip = df[page_col].astype(int).values.reshape(-1, 1)
+    # Unified hover: build text for each point, to use as hovertext for all traces
+    hover_texts = []
+    for idx, row in df.iterrows():
+        date_str = row[date_col].strftime("%b %d, %Y")
+        pages_str = f"Total Pages: {int(row[page_col])}"
+        page_change_str = f"Page Change Rate: {row[f'Page Change {window_size}MA']:.2f}%"
+        traffic_change_str = f"Traffic Change Rate: {row[f'Traffic Change {window_size}MA']:.2f}%"
+        tpp_str = f"Traffic Per Page: {row[f'Traffic per Page {window_size}MA']:.2f}"
+        hover_texts.append(
+            f"{date_str}<br>{pages_str}<br><br>{page_change_str}<br>{traffic_change_str}<br>{tpp_str}"
+        )
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -167,12 +176,7 @@ if uploaded_file is not None and not st.session_state.get('input_error', False):
         name='Page Change Rate (%)',
         line=dict(color='#3288d7', width=3),
         yaxis="y2",
-        hovertemplate=(
-            '%{x}<br>'
-            'Total Pages: %{customdata[0]}<br>'
-            'Page Change Rate: %{y:.2f}%<extra></extra>'
-        ),
-        customdata=pages_tooltip
+        hoverinfo='skip'  # We will use unified hoverlabel instead
     ))
     fig.add_trace(go.Scatter(
         x=df[date_col],
@@ -181,13 +185,18 @@ if uploaded_file is not None and not st.session_state.get('input_error', False):
         name='Traffic Change Rate (%)',
         line=dict(color='#ff8800', width=3),
         yaxis="y2",
-        hovertemplate=(
-            '%{x}<br>'
-            'Total Pages: %{customdata[0]}<br>'
-            'Traffic Change Rate: %{y:.2f}%<extra></extra>'
-        ),
-        customdata=pages_tooltip
+        hoverinfo='skip'
     ))
+    fig.add_trace(go.Scatter(
+        x=df[date_col],
+        y=df[f"Traffic per Page {window_size}MA"],
+        mode='lines',
+        name='Traffic per Page',
+        line=dict(color='green', width=4, dash='dash'),
+        yaxis="y",
+        hoverinfo='skip'
+    ))
+
     fig.add_shape(type="line",
                   x0=df[date_col].min(), x1=df[date_col].max(),
                   y0=0, y1=0, yref="y2", line=dict(color="gray", width=2, dash="dash"))
@@ -196,25 +205,27 @@ if uploaded_file is not None and not st.session_state.get('input_error', False):
         xaxis_title="Date",
         yaxis=dict(title="Traffic per Page", side="left"),
         yaxis2=dict(title="Percentage (%)", side="right", overlaying="y", showgrid=False, range=[-50, 50], type='linear'),
-        template="plotly_dark", hovermode="x unified",
+        template="plotly_dark",
+        hovermode="x unified",  # THIS IS KEY
         legend=dict(x=0, y=1.1, bgcolor='rgba(0,0,0,0)'),
         margin=dict(l=20, r=20, t=120, b=100),
-        height=1000
+        height=1000,
+        hoverlabel=dict(
+            font_size=16,
+            bgcolor='rgba(0,0,0,0.95)'
+        )
     )
     fig.update_xaxes(rangeslider_visible=True)
+
+    # Now inject the unified custom hover text using plotly's hack: add a transparent scatter trace with custom hovertext
     fig.add_trace(go.Scatter(
         x=df[date_col],
-        y=df[f"Traffic per Page {window_size}MA"],
-        mode='lines',
-        name='Traffic per Page',
-        line=dict(color='green', width=4, dash='dash'),
-        yaxis="y",
-        hovertemplate=(
-            '%{x}<br>'
-            'Total Pages: %{customdata[0]}<br>'
-            'Traffic per Page: %{y:.2f}<extra></extra>'
-        ),
-        customdata=pages_tooltip
+        y=[None]*len(df),
+        mode='markers',
+        marker=dict(opacity=0),
+        showlegend=False,
+        hoverinfo='text',
+        hovertext=hover_texts
     ))
 
     for idx, row in df.iterrows():
